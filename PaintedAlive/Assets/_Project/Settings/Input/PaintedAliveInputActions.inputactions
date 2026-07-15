@@ -177,6 +177,122 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Painter",
+            "id": "d59af4c1-8161-4644-a019-cbde9c7ce7bc",
+            "actions": [
+                {
+                    "name": "PointerPosition",
+                    "type": "PassThrough",
+                    "id": "282543e9-3864-4514-bb6c-a0df92049afd",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Paint",
+                    "type": "Button",
+                    "id": "069ce099-6954-4f00-bb9a-d5cb65a10238",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Clear",
+                    "type": "Button",
+                    "id": "2da9c13b-2899-4b4d-98f4-b6cf78fe7311",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "fc0195e1-4362-4138-a8e6-aea7c85a215f",
+                    "path": "<Pointer>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PointerPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d7d6c191-8829-4487-8f6a-ebea43c9ac69",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Paint",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5d28209d-c0bb-435c-b83a-03dd97d603f3",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Clear",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Prototype",
+            "id": "a4af918e-e2c7-4c6a-9f8e-be2867c7cce2",
+            "actions": [
+                {
+                    "name": "FigureMode",
+                    "type": "Button",
+                    "id": "a8e621ae-9a19-4487-9564-1c5db264038c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "PainterMode",
+                    "type": "Button",
+                    "id": "d62a775e-2486-4c02-95fa-dff4f5aad02a",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "df08c7bf-0cf3-4582-82a1-b4c84fc26b80",
+                    "path": "<Keyboard>/f1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "FigureMode",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "364f07a3-4187-426c-984c-20169ce9f518",
+                    "path": "<Keyboard>/f2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PainterMode",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": []
