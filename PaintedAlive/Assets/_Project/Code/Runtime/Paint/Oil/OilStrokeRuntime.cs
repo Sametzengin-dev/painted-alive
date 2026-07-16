@@ -6,6 +6,13 @@ using UnityEngine.Splines;
 
 namespace PaintedAlive.Paint
 {
+    public enum OilStrokeState
+    {
+        Wet,
+        Drying,
+        Dry
+    }
+
     [DisallowMultipleComponent]
     [RequireComponent(typeof(SplineContainer))]
     [RequireComponent(typeof(MeshFilter))]
@@ -13,23 +20,42 @@ namespace PaintedAlive.Paint
     [RequireComponent(typeof(MeshCollider))]
     public sealed class OilStrokeRuntime : MonoBehaviour
     {
+        private static readonly int BaseColorId =
+            Shader.PropertyToID("_BaseColor");
+
+        private static readonly int SmoothnessId =
+            Shader.PropertyToID("_Smoothness");
+
         private readonly List<Vector3> controlPoints = new();
+        private readonly List<Vector2> cutIntervals = new();
 
         private OilStrokeConfig config;
+        private Material wetMaterial;
+        private Material dryMaterial;
+
         private SplineContainer splineContainer;
         private Spline spline;
         private MeshFilter meshFilter;
         private MeshRenderer meshRenderer;
         private MeshCollider meshCollider;
         private Mesh generatedMesh;
+        private MaterialPropertyBlock materialPropertyBlock;
+
+        private bool finalized;
+        private float lifecycleElapsed;
 
         public bool HasRenderableGeometry => controlPoints.Count >= 2;
+        public OilStrokeState State { get; private set; }
+        public bool IsFinalized => finalized;
 
         public void Initialize(
             OilStrokeConfig strokeConfig,
-            Material strokeMaterial)
+            Material initialWetMaterial,
+            Material finalDryMaterial)
         {
             config = strokeConfig;
+            wetMaterial = initialWetMaterial;
+            dryMaterial = finalDryMaterial;
 
             splineContainer = GetComponent<SplineContainer>();
             meshFilter = GetComponent<MeshFilter>();
@@ -48,8 +74,52 @@ namespace PaintedAlive.Paint
             generatedMesh.MarkDynamic();
 
             meshFilter.sharedMesh = generatedMesh;
-            meshRenderer.sharedMaterial = strokeMaterial;
+            meshRenderer.sharedMaterial =
+                wetMaterial != null ? wetMaterial : dryMaterial;
+
             meshCollider.sharedMesh = null;
+
+            materialPropertyBlock = new MaterialPropertyBlock();
+
+            State = OilStrokeState.Wet;
+            ApplyLifecycleVisual(0f);
+        }
+
+        private void Update()
+        {
+            if (!finalized || config == null)
+            {
+                return;
+            }
+
+            lifecycleElapsed += Time.deltaTime;
+
+            float wetEnd = config.WetDuration;
+            float dryEnd = wetEnd + config.DryingDuration;
+
+            if (lifecycleElapsed < wetEnd)
+            {
+                State = OilStrokeState.Wet;
+                ApplyLifecycleVisual(0f);
+                return;
+            }
+
+            if (config.DryingDuration > 0f &&
+                lifecycleElapsed < dryEnd)
+            {
+                State = OilStrokeState.Drying;
+
+                float dryingProgress = Mathf.InverseLerp(
+                    wetEnd,
+                    dryEnd,
+                    lifecycleElapsed);
+
+                ApplyLifecycleVisual(dryingProgress);
+                return;
+            }
+
+            State = OilStrokeState.Dry;
+            ApplyLifecycleVisual(1f);
         }
 
         public bool TryAppendWorldPoint(Vector3 worldPoint)
@@ -94,10 +164,127 @@ namespace PaintedAlive.Paint
 
         public void FinalizeStroke()
         {
-            if (HasRenderableGeometry)
+            if (!HasRenderableGeometry)
             {
-                RebuildMesh();
+                return;
             }
+
+            finalized = true;
+            lifecycleElapsed = 0f;
+            State = OilStrokeState.Wet;
+
+            RebuildMesh();
+            ApplyLifecycleVisual(0f);
+        }
+
+        public bool TryCutWorldPoint(
+            Vector3 worldPoint,
+            float requestedGapWidth)
+        {
+            if (!HasRenderableGeometry ||
+                requestedGapWidth <= 0f)
+            {
+                return false;
+            }
+
+            float splineLength = splineContainer.CalculateLength();
+
+            if (splineLength <= 0.001f)
+            {
+                return false;
+            }
+
+            Vector3 localPoint =
+                transform.InverseTransformPoint(worldPoint);
+
+            var localFloatPoint = new float3(
+                localPoint.x,
+                localPoint.y,
+                localPoint.z);
+
+            SplineUtility.GetNearestPoint(
+                spline,
+                localFloatPoint,
+                out _,
+                out float normalizedT,
+                8,
+                3);
+
+            float stateMultiplier = GetCutMultiplier();
+
+            float normalizedHalfWidth =
+                requestedGapWidth *
+                stateMultiplier *
+                0.5f /
+                splineLength;
+
+            normalizedHalfWidth = Mathf.Clamp(
+                normalizedHalfWidth,
+                0.002f,
+                0.5f);
+
+            Vector2 newInterval = new(
+                Mathf.Clamp01(normalizedT - normalizedHalfWidth),
+                Mathf.Clamp01(normalizedT + normalizedHalfWidth));
+
+            AddAndMergeCutInterval(newInterval);
+            RebuildMesh();
+
+            return true;
+        }
+
+        private float GetCutMultiplier()
+        {
+            return State switch
+            {
+                OilStrokeState.Wet => config.WetCutMultiplier,
+                OilStrokeState.Drying => config.DryingCutMultiplier,
+                OilStrokeState.Dry => config.DryCutMultiplier,
+                _ => 1f
+            };
+        }
+
+        private void AddAndMergeCutInterval(Vector2 newInterval)
+        {
+            cutIntervals.Add(newInterval);
+
+            cutIntervals.Sort(
+                (first, second) =>
+                    first.x.CompareTo(second.x));
+
+            for (int i = cutIntervals.Count - 1; i > 0; i--)
+            {
+                Vector2 previous = cutIntervals[i - 1];
+                Vector2 current = cutIntervals[i];
+
+                if (current.x > previous.y + 0.0001f)
+                {
+                    continue;
+                }
+
+                cutIntervals[i - 1] = new Vector2(
+                    Mathf.Min(previous.x, current.x),
+                    Mathf.Max(previous.y, current.y));
+
+                cutIntervals.RemoveAt(i);
+            }
+        }
+
+        private bool IsSegmentCut(float startT, float endT)
+        {
+            foreach (Vector2 interval in cutIntervals)
+            {
+                bool overlaps =
+                    interval.x < endT &&
+                    interval.y > startT;
+
+                if (overlaps)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void RebuildMesh()
@@ -108,24 +295,24 @@ namespace PaintedAlive.Paint
                 segmentCount * config.SamplesPerSegment + 1;
 
             var vertices = new List<Vector3>(sampleCount * 4);
-            var triangles = new List<int>((sampleCount - 1) * 24 + 12);
+            var triangles = new List<int>((sampleCount - 1) * 24 + 24);
             var uv = new List<Vector2>(sampleCount * 4);
 
             float halfWidth = config.Width * 0.5f;
 
             for (int i = 0; i < sampleCount; i++)
             {
-                float t = sampleCount <= 1
-                    ? 0f
-                    : i / (float)(sampleCount - 1);
+                float t = i / (float)(sampleCount - 1);
 
-                if (!splineContainer.Evaluate(
-                        t,
-                        out float3 worldPosition,
-                        out float3 worldTangent,
-                        out _))
+                bool evaluated = splineContainer.Evaluate(
+                    t,
+                    out float3 worldPosition,
+                    out float3 worldTangent,
+                    out _);
+
+                if (!evaluated)
                 {
-                    continue;
+                    return;
                 }
 
                 Vector3 localPosition =
@@ -179,8 +366,24 @@ namespace PaintedAlive.Paint
                 uv.Add(new Vector2(1f, t));
             }
 
-            for (int i = 0; i < sampleCount - 1; i++)
+            int meshSegmentCount = sampleCount - 1;
+            var cutSegments = new bool[meshSegmentCount];
+
+            for (int i = 0; i < meshSegmentCount; i++)
             {
+                float startT = i / (float)meshSegmentCount;
+                float endT = (i + 1) / (float)meshSegmentCount;
+
+                cutSegments[i] = IsSegmentCut(startT, endT);
+            }
+
+            for (int i = 0; i < meshSegmentCount; i++)
+            {
+                if (cutSegments[i])
+                {
+                    continue;
+                }
+
                 int current = i * 4;
                 int next = (i + 1) * 4;
 
@@ -194,7 +397,6 @@ namespace PaintedAlive.Paint
                 int topLeftNext = next + 2;
                 int topRightNext = next + 3;
 
-                // Top
                 AddQuad(
                     triangles,
                     topLeftCurrent,
@@ -202,7 +404,6 @@ namespace PaintedAlive.Paint
                     topRightNext,
                     topRightCurrent);
 
-                // Right side
                 AddQuad(
                     triangles,
                     bottomRightCurrent,
@@ -210,7 +411,6 @@ namespace PaintedAlive.Paint
                     topRightNext,
                     bottomRightNext);
 
-                // Left side
                 AddQuad(
                     triangles,
                     bottomLeftCurrent,
@@ -218,27 +418,40 @@ namespace PaintedAlive.Paint
                     topLeftNext,
                     topLeftCurrent);
 
-                // Bottom
                 AddQuad(
                     triangles,
                     bottomLeftCurrent,
                     bottomRightCurrent,
                     bottomRightNext,
                     bottomLeftNext);
+
+                bool needsStartCap =
+                    i == 0 || cutSegments[i - 1];
+
+                bool needsEndCap =
+                    i == meshSegmentCount - 1 ||
+                    cutSegments[i + 1];
+
+                if (needsStartCap)
+                {
+                    AddQuad(
+                        triangles,
+                        bottomLeftCurrent,
+                        topLeftCurrent,
+                        topRightCurrent,
+                        bottomRightCurrent);
+                }
+
+                if (needsEndCap)
+                {
+                    AddQuad(
+                        triangles,
+                        bottomLeftNext,
+                        bottomRightNext,
+                        topRightNext,
+                        topLeftNext);
+                }
             }
-
-            int finalSample = (sampleCount - 1) * 4;
-
-            // Start cap
-            AddQuad(triangles, 0, 2, 3, 1);
-
-            // End cap
-            AddQuad(
-                triangles,
-                finalSample,
-                finalSample + 1,
-                finalSample + 3,
-                finalSample + 2);
 
             generatedMesh.Clear();
             generatedMesh.SetVertices(vertices);
@@ -248,7 +461,81 @@ namespace PaintedAlive.Paint
             generatedMesh.RecalculateBounds();
 
             meshCollider.sharedMesh = null;
-            meshCollider.sharedMesh = generatedMesh;
+
+            if (triangles.Count > 0)
+            {
+                meshCollider.sharedMesh = generatedMesh;
+            }
+        }
+
+        private void ApplyLifecycleVisual(float dryingProgress)
+        {
+            Material fallbackWet =
+                wetMaterial != null ? wetMaterial : dryMaterial;
+
+            Material fallbackDry =
+                dryMaterial != null ? dryMaterial : wetMaterial;
+
+            if (fallbackWet == null || fallbackDry == null)
+            {
+                return;
+            }
+
+            if (State == OilStrokeState.Dry)
+            {
+                meshRenderer.SetPropertyBlock(null);
+                meshRenderer.sharedMaterial = fallbackDry;
+                return;
+            }
+
+            meshRenderer.sharedMaterial = fallbackWet;
+
+            if (State == OilStrokeState.Wet)
+            {
+                meshRenderer.SetPropertyBlock(null);
+                return;
+            }
+
+            Color wetColor = GetMaterialColor(fallbackWet);
+            Color dryColor = GetMaterialColor(fallbackDry);
+
+            float wetSmoothness =
+                GetMaterialSmoothness(fallbackWet);
+
+            float drySmoothness =
+                GetMaterialSmoothness(fallbackDry);
+
+            materialPropertyBlock.Clear();
+
+            materialPropertyBlock.SetColor(
+                BaseColorId,
+                Color.Lerp(
+                    wetColor,
+                    dryColor,
+                    dryingProgress));
+
+            materialPropertyBlock.SetFloat(
+                SmoothnessId,
+                Mathf.Lerp(
+                    wetSmoothness,
+                    drySmoothness,
+                    dryingProgress));
+
+            meshRenderer.SetPropertyBlock(materialPropertyBlock);
+        }
+
+        private static Color GetMaterialColor(Material material)
+        {
+            return material.HasProperty(BaseColorId)
+                ? material.GetColor(BaseColorId)
+                : Color.white;
+        }
+
+        private static float GetMaterialSmoothness(Material material)
+        {
+            return material.HasProperty(SmoothnessId)
+                ? material.GetFloat(SmoothnessId)
+                : 0.5f;
         }
 
         private static void AddQuad(

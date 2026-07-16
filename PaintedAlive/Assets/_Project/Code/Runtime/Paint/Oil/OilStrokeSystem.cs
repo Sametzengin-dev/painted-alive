@@ -6,9 +6,12 @@ namespace PaintedAlive.Paint
     [DisallowMultipleComponent]
     public sealed class OilStrokeSystem : MonoBehaviour
     {
+        private const string StrokeLayerName = "OilPaint";
+
         [Header("Configuration")]
         [SerializeField] private OilStrokeConfig config;
-        [SerializeField] private Material strokeMaterial;
+        [SerializeField] private Material wetMaterial;
+        [SerializeField] private Material dryMaterial;
 
         [Header("Runtime Hierarchy")]
         [SerializeField] private Transform strokesRoot;
@@ -47,23 +50,38 @@ namespace PaintedAlive.Paint
 
             strokeObject.transform.SetParent(parent, false);
 
+            int strokeLayer = LayerMask.NameToLayer(
+                StrokeLayerName);
+
+            if (strokeLayer >= 0)
+            {
+                strokeObject.layer = strokeLayer;
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"Layer '{StrokeLayerName}' does not exist.",
+                    this);
+            }
+
             activeStroke =
                 strokeObject.AddComponent<OilStrokeRuntime>();
 
-            activeStroke.Initialize(config, strokeMaterial);
-            activeStroke.TryAppendWorldPoint(worldPoint);
+            activeStroke.Initialize(
+                config,
+                wetMaterial,
+                dryMaterial);
 
+            activeStroke.TryAppendWorldPoint(worldPoint);
             strokes.Add(activeStroke);
         }
 
         public void AppendStrokePoint(Vector3 worldPoint)
         {
-            if (activeStroke == null)
+            if (activeStroke != null)
             {
-                return;
+                activeStroke.TryAppendWorldPoint(worldPoint);
             }
-
-            activeStroke.TryAppendWorldPoint(worldPoint);
         }
 
         public void EndStroke()
