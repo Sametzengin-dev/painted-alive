@@ -19,57 +19,103 @@ namespace PaintedAlive.Painters
         }
 
         [Header("Dependencies")]
-        [SerializeField] private Camera outputCamera;
-        [SerializeField] private OilStrokeSystem strokeSystem;
-        [SerializeField] private PainterPigmentReservoir pigmentReservoir;
-        [SerializeField] private Transform brushVisual;
-        [SerializeField] private Renderer brushRenderer;
-        [SerializeField] private LineRenderer strokePreview;
+        [SerializeField]
+        private Camera outputCamera;
+
+        [SerializeField]
+        private OilStrokeSystem strokeSystem;
+
+        [SerializeField]
+        private PainterPigmentReservoir pigmentReservoir;
+
+        [SerializeField]
+        private Transform brushVisual;
+
+        [SerializeField]
+        private Renderer brushRenderer;
+
+        [SerializeField]
+        private LineRenderer strokePreview;
+
+        [SerializeField]
+        private PainterStrokeModeSelector strokeModeSelector;
 
         [Header("Input")]
-        [SerializeField] private InputActionReference pointerPositionAction;
-        [SerializeField] private InputActionReference paintAction;
-        [SerializeField] private InputActionReference clearAction;
+        [SerializeField]
+        private InputActionReference pointerPositionAction;
+
+        [SerializeField]
+        private InputActionReference paintAction;
+
+        [SerializeField]
+        private InputActionReference clearAction;
 
         [Header("Surface Detection")]
-        [SerializeField] private LayerMask paintSurfaceMask;
-        [SerializeField, Min(1f)] private float maximumRayDistance = 100f;
+        [SerializeField]
+        private LayerMask paintSurfaceMask;
+
+        [SerializeField, Min(1f)]
+        private float maximumRayDistance = 100f;
 
         [Header("Protected Figure Zone")]
-        [SerializeField] private LayerMask forbiddenZoneMask;
-        [SerializeField, Min(0f)] private float forbiddenRadius = 0.9f;
+        [SerializeField]
+        private LayerMask forbiddenZoneMask;
+
+        [SerializeField, Min(0f)]
+        private float forbiddenRadius = 0.9f;
 
         [Header("Telegraph")]
-        [SerializeField, Min(0f)] private float telegraphDuration = 0.45f;
-        [SerializeField, Min(0.02f)] private float previewPointSpacing = 0.22f;
+        [SerializeField, Min(0f)]
+        private float telegraphDuration = 0.45f;
+
+        [SerializeField, Min(0.02f)]
+        private float previewPointSpacing = 0.22f;
 
         [Header("Brush Feedback")]
-        [SerializeField] private Color validColor =
+        [SerializeField]
+        private Color validColor =
             new(0.75f, 0.12f, 0.16f, 1f);
 
-        [SerializeField] private Color forbiddenColor =
+        [SerializeField]
+        private Color forbiddenColor =
             new(1f, 0.08f, 0.04f, 1f);
 
-        private readonly List<Vector3> previewPoints = new();
+        private readonly List<Vector3> previewPoints =
+            new();
 
         private MaterialPropertyBlock brushPropertyBlock;
         private BrushState state;
         private float telegraphElapsed;
         private Vector3 lastCommittedPoint;
 
+        private OilStrokeShape activeShape =
+            OilStrokeShape.Wall;
+
         private void Awake()
         {
-            brushPropertyBlock = new MaterialPropertyBlock();
+            brushPropertyBlock =
+                new MaterialPropertyBlock();
+
             ClearPreview();
         }
 
         private void OnEnable()
         {
-            SetActionEnabled(pointerPositionAction, true);
-            SetActionEnabled(paintAction, true);
-            SetActionEnabled(clearAction, true);
+            SetActionEnabled(
+                pointerPositionAction,
+                true);
 
-            Cursor.lockState = CursorLockMode.None;
+            SetActionEnabled(
+                paintAction,
+                true);
+
+            SetActionEnabled(
+                clearAction,
+                true);
+
+            Cursor.lockState =
+                CursorLockMode.None;
+
             Cursor.visible = true;
 
             state = BrushState.Idle;
@@ -79,9 +125,17 @@ namespace PaintedAlive.Painters
         {
             CancelCurrentInteraction();
 
-            SetActionEnabled(pointerPositionAction, false);
-            SetActionEnabled(paintAction, false);
-            SetActionEnabled(clearAction, false);
+            SetActionEnabled(
+                pointerPositionAction,
+                false);
+
+            SetActionEnabled(
+                paintAction,
+                false);
+
+            SetActionEnabled(
+                clearAction,
+                false);
 
             SetBrushVisible(false);
         }
@@ -95,18 +149,22 @@ namespace PaintedAlive.Painters
                 return;
             }
 
-            bool hasPaintPoint = TryGetPaintPoint(
-                out Vector3 paintPoint,
-                out Vector3 surfaceNormal);
+            bool hasPaintPoint =
+                TryGetPaintPoint(
+                    out Vector3 paintPoint,
+                    out Vector3 surfaceNormal);
 
-            bool forbidden = hasPaintPoint &&
+            bool forbidden =
+                hasPaintPoint &&
                 Physics.CheckSphere(
                     paintPoint,
                     forbiddenRadius,
                     forbiddenZoneMask,
                     QueryTriggerInteraction.Ignore);
 
-            bool validPoint = hasPaintPoint && !forbidden;
+            bool validPoint =
+                hasPaintPoint &&
+                !forbidden;
 
             UpdateBrushVisual(
                 hasPaintPoint,
@@ -121,12 +179,14 @@ namespace PaintedAlive.Painters
                 return;
             }
 
-            if (paintAction == null || paintAction.action == null)
+            if (paintAction == null ||
+                paintAction.action == null)
             {
                 return;
             }
 
-            if (paintAction.action.WasPressedThisFrame() &&
+            if (paintAction.action
+                    .WasPressedThisFrame() &&
                 validPoint)
             {
                 StartPreview(paintPoint);
@@ -135,49 +195,113 @@ namespace PaintedAlive.Painters
             switch (state)
             {
                 case BrushState.Previewing:
-                    UpdatePreview(validPoint, paintPoint);
+                    UpdatePreview(
+                        validPoint,
+                        paintPoint);
                     break;
 
                 case BrushState.Painting:
-                    UpdatePainting(validPoint, paintPoint);
+                    UpdatePainting(
+                        validPoint,
+                        paintPoint);
                     break;
             }
 
-            if (paintAction.action.WasReleasedThisFrame())
+            if (paintAction.action
+                .WasReleasedThisFrame())
             {
-                if (state == BrushState.Previewing)
+                if (state ==
+                    BrushState.Previewing)
                 {
                     CancelPreview();
                 }
-                else if (state == BrushState.Painting)
+                else if (state ==
+                         BrushState.Painting)
                 {
                     EndPainting();
                 }
             }
         }
 
-        private void StartPreview(Vector3 startPoint)
+        private void StartPreview(
+            Vector3 startPoint)
         {
             CancelCurrentInteraction();
 
-            state = BrushState.Previewing;
+            state =
+                BrushState.Previewing;
+
             telegraphElapsed = 0f;
 
             previewPoints.Clear();
             previewPoints.Add(startPoint);
 
-            pigmentReservoir.SetConsuming(true);
+            pigmentReservoir
+                .SetConsuming(true);
+
+            OilStrokeShape previewShape =
+                strokeModeSelector != null
+                    ? strokeModeSelector
+                        .CurrentShape
+                    : OilStrokeShape.Wall;
+
+            float previewWidth =
+                strokeSystem.GetPreviewWidth(
+                    previewShape);
+
+            strokePreview.startWidth =
+                Mathf.Clamp(
+                    previewWidth * 0.15f,
+                    0.08f,
+                    0.25f);
+
+            strokePreview.endWidth =
+                strokePreview.startWidth;
+
+            if (previewShape ==
+                OilStrokeShape.Ramp)
+            {
+                strokePreview.startColor =
+                    new Color(
+                        0.7f,
+                        0.1f,
+                        0.12f,
+                        0.2f);
+
+                strokePreview.endColor =
+                    new Color(
+                        1f,
+                        0.35f,
+                        0.2f,
+                        0.85f);
+            }
+            else
+            {
+                strokePreview.startColor =
+                    new Color(
+                        0.8f,
+                        0.1f,
+                        0.12f,
+                        0.45f);
+
+                strokePreview.endColor =
+                    strokePreview.startColor;
+            }
 
             strokePreview.enabled = true;
             strokePreview.positionCount = 1;
-            strokePreview.SetPosition(0, startPoint);
+
+            strokePreview.SetPosition(
+                0,
+                startPoint);
         }
 
         private void UpdatePreview(
             bool validPoint,
             Vector3 paintPoint)
         {
-            if (!paintAction.action.IsPressed())
+            if (!paintAction.action
+                .IsPressed())
             {
                 return;
             }
@@ -188,30 +312,39 @@ namespace PaintedAlive.Painters
                 return;
             }
 
-            AppendPreviewPoint(paintPoint);
-            telegraphElapsed += Time.deltaTime;
+            AppendPreviewPoint(
+                paintPoint);
+
+            telegraphElapsed +=
+                Time.deltaTime;
 
             bool telegraphComplete =
-                telegraphElapsed >= telegraphDuration;
+                telegraphElapsed >=
+                telegraphDuration;
 
             bool hasDrawablePath =
                 previewPoints.Count >= 2;
 
-            if (telegraphComplete && hasDrawablePath)
+            if (telegraphComplete &&
+                hasDrawablePath)
             {
                 CommitPreview();
             }
         }
 
-        private void AppendPreviewPoint(Vector3 point)
+        private void AppendPreviewPoint(
+            Vector3 point)
         {
             Vector3 previous =
-                previewPoints[previewPoints.Count - 1];
+                previewPoints[
+                    previewPoints.Count - 1];
 
             float minimumDistanceSquared =
-                previewPointSpacing * previewPointSpacing;
+                previewPointSpacing *
+                previewPointSpacing;
 
-            if ((point - previous).sqrMagnitude <
+            if ((point - previous)
+                .sqrMagnitude <
                 minimumDistanceSquared)
             {
                 return;
@@ -229,46 +362,77 @@ namespace PaintedAlive.Painters
 
         private void CommitPreview()
         {
-            float requiredPigment =
-                pigmentReservoir.StrokeBeginCost;
+            activeShape =
+                strokeModeSelector != null
+                    ? strokeModeSelector
+                        .CurrentShape
+                    : OilStrokeShape.Wall;
 
-            for (int i = 1; i < previewPoints.Count; i++)
+            float pigmentMultiplier =
+                strokeSystem
+                    .GetPigmentMultiplier(
+                        activeShape);
+
+            float requiredPigment =
+                pigmentReservoir
+                    .StrokeBeginCost *
+                pigmentMultiplier;
+
+            for (int i = 1;
+                 i < previewPoints.Count;
+                 i++)
             {
-                float distance = Vector3.Distance(
-                    previewPoints[i - 1],
-                    previewPoints[i]);
+                float distance =
+                    Vector3.Distance(
+                        previewPoints[i - 1],
+                        previewPoints[i]);
 
                 requiredPigment +=
-                    pigmentReservoir.CalculateDistanceCost(distance);
+                    pigmentReservoir
+                        .CalculateDistanceCost(
+                            distance) *
+                    pigmentMultiplier;
             }
 
-            if (!pigmentReservoir.CanAfford(requiredPigment))
+            if (!pigmentReservoir
+                .CanAfford(requiredPigment))
             {
                 CancelPreview();
                 return;
             }
 
-            if (!strokeSystem.BeginStroke(previewPoints[0]))
+            if (!strokeSystem.BeginStroke(
+                    previewPoints[0],
+                    activeShape))
             {
                 CancelPreview();
                 return;
             }
 
-            Vector3 lastAcceptedPoint = previewPoints[0];
+            Vector3 lastAcceptedPoint =
+                previewPoints[0];
 
-            for (int i = 1; i < previewPoints.Count; i++)
+            for (int i = 1;
+                 i < previewPoints.Count;
+                 i++)
             {
-                if (strokeSystem.AppendStrokePoint(
+                if (strokeSystem
+                    .AppendStrokePoint(
                         previewPoints[i]))
                 {
-                    lastAcceptedPoint = previewPoints[i];
+                    lastAcceptedPoint =
+                        previewPoints[i];
                 }
             }
 
-            pigmentReservoir.TrySpend(requiredPigment);
+            pigmentReservoir.TrySpend(
+                requiredPigment);
 
-            lastCommittedPoint = lastAcceptedPoint;
-            state = BrushState.Painting;
+            lastCommittedPoint =
+                lastAcceptedPoint;
+
+            state =
+                BrushState.Painting;
 
             ClearPreview();
         }
@@ -277,7 +441,8 @@ namespace PaintedAlive.Painters
             bool validPoint,
             Vector3 paintPoint)
         {
-            if (!paintAction.action.IsPressed())
+            if (!paintAction.action
+                .IsPressed())
             {
                 return;
             }
@@ -288,35 +453,50 @@ namespace PaintedAlive.Painters
                 return;
             }
 
-            float distance = Vector3.Distance(
-                lastCommittedPoint,
-                paintPoint);
+            float distance =
+                Vector3.Distance(
+                    lastCommittedPoint,
+                    paintPoint);
 
             float pointCost =
-                pigmentReservoir.CalculateDistanceCost(distance);
+                pigmentReservoir
+                    .CalculateDistanceCost(
+                        distance) *
+                strokeSystem
+                    .GetPigmentMultiplier(
+                        activeShape);
 
-            if (!pigmentReservoir.CanAfford(pointCost))
+            if (!pigmentReservoir
+                .CanAfford(pointCost))
             {
                 EndPainting();
                 return;
             }
 
             bool accepted =
-                strokeSystem.AppendStrokePoint(paintPoint);
+                strokeSystem
+                    .AppendStrokePoint(
+                        paintPoint);
 
             if (!accepted)
             {
                 return;
             }
 
-            pigmentReservoir.TrySpend(pointCost);
-            lastCommittedPoint = paintPoint;
+            pigmentReservoir.TrySpend(
+                pointCost);
+
+            lastCommittedPoint =
+                paintPoint;
         }
 
         private void EndPainting()
         {
             strokeSystem.EndStroke();
-            pigmentReservoir.SetConsuming(false);
+
+            pigmentReservoir
+                .SetConsuming(false);
+
             state = BrushState.Idle;
 
             ClearPreview();
@@ -324,7 +504,9 @@ namespace PaintedAlive.Painters
 
         private void CancelPreview()
         {
-            pigmentReservoir.SetConsuming(false);
+            pigmentReservoir
+                .SetConsuming(false);
+
             state = BrushState.Idle;
 
             ClearPreview();
@@ -332,7 +514,8 @@ namespace PaintedAlive.Painters
 
         private void CancelCurrentInteraction()
         {
-            if (state == BrushState.Painting &&
+            if (state ==
+                    BrushState.Painting &&
                 strokeSystem != null)
             {
                 strokeSystem.EndStroke();
@@ -340,10 +523,12 @@ namespace PaintedAlive.Painters
 
             if (pigmentReservoir != null)
             {
-                pigmentReservoir.SetConsuming(false);
+                pigmentReservoir
+                    .SetConsuming(false);
             }
 
             state = BrushState.Idle;
+
             ClearPreview();
         }
 
@@ -353,8 +538,11 @@ namespace PaintedAlive.Painters
 
             if (strokePreview != null)
             {
-                strokePreview.positionCount = 0;
-                strokePreview.enabled = false;
+                strokePreview.positionCount =
+                    0;
+
+                strokePreview.enabled =
+                    false;
             }
         }
 
@@ -362,7 +550,8 @@ namespace PaintedAlive.Painters
         {
             return clearAction != null &&
                    clearAction.action != null &&
-                   clearAction.action.WasPressedThisFrame();
+                   clearAction.action
+                       .WasPressedThisFrame();
         }
 
         private bool TryGetPaintPoint(
@@ -373,16 +562,19 @@ namespace PaintedAlive.Painters
             surfaceNormal = Vector3.up;
 
             if (pointerPositionAction == null ||
-                pointerPositionAction.action == null)
+                pointerPositionAction.action ==
+                null)
             {
                 return false;
             }
 
             Vector2 pointerPosition =
-                pointerPositionAction.action.ReadValue<Vector2>();
+                pointerPositionAction.action
+                    .ReadValue<Vector2>();
 
             Ray ray =
-                outputCamera.ScreenPointToRay(pointerPosition);
+                outputCamera.ScreenPointToRay(
+                    pointerPosition);
 
             if (!Physics.Raycast(
                     ray,
@@ -398,7 +590,8 @@ namespace PaintedAlive.Painters
 
             paintPoint =
                 hit.point +
-                hit.normal * strokeSystem.SurfaceOffset;
+                hit.normal *
+                strokeSystem.SurfaceOffset;
 
             return true;
         }
@@ -414,14 +607,16 @@ namespace PaintedAlive.Painters
                 return;
             }
 
-            brushVisual.gameObject.SetActive(visible);
+            brushVisual.gameObject
+                .SetActive(visible);
 
             if (!visible)
             {
                 return;
             }
 
-            brushVisual.position = position;
+            brushVisual.position =
+                position;
 
             brushVisual.rotation =
                 Quaternion.FromToRotation(
@@ -438,17 +633,21 @@ namespace PaintedAlive.Painters
 
             brushPropertyBlock.SetColor(
                 BaseColorId,
-                valid ? validColor : forbiddenColor);
+                valid
+                    ? validColor
+                    : forbiddenColor);
 
             brushRenderer.SetPropertyBlock(
                 brushPropertyBlock);
         }
 
-        private void SetBrushVisible(bool visible)
+        private void SetBrushVisible(
+            bool visible)
         {
             if (brushVisual != null)
             {
-                brushVisual.gameObject.SetActive(visible);
+                brushVisual.gameObject
+                    .SetActive(visible);
             }
         }
 

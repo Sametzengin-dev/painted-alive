@@ -239,6 +239,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "SelectWall",
+                    "type": "Button",
+                    "id": "18e06a45-4b12-4237-be3f-b91a1af22419",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "SelectRamp",
+                    "type": "Button",
+                    "id": "c9afbda8-0136-4b76-8623-775d4b83a258",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -272,6 +290,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "Clear",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b7688b14-c650-4253-ba33-c01f550f9a18",
+                    "path": "<Keyboard>/1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SelectWall",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "95d0d49b-b28e-4218-b616-223b1d6ad62f",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SelectRamp",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

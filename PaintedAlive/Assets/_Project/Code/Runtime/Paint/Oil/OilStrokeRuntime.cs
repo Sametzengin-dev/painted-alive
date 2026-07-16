@@ -47,6 +47,7 @@ namespace PaintedAlive.Paint
         public bool HasRenderableGeometry => controlPoints.Count >= 2;
         public OilStrokeState State { get; private set; }
         public bool IsFinalized => finalized;
+        public OilStrokeShape Shape { get; private set; }
 
         public float OriginalLength =>
             splineContainer != null && HasRenderableGeometry
@@ -61,11 +62,13 @@ namespace PaintedAlive.Paint
         public void Initialize(
             OilStrokeConfig strokeConfig,
             Material initialWetMaterial,
-            Material finalDryMaterial)
+            Material finalDryMaterial,
+            OilStrokeShape strokeShape)
         {
             config = strokeConfig;
             wetMaterial = initialWetMaterial;
             dryMaterial = finalDryMaterial;
+            Shape = strokeShape;
 
             splineContainer = GetComponent<SplineContainer>();
             meshFilter = GetComponent<MeshFilter>();
@@ -84,12 +87,16 @@ namespace PaintedAlive.Paint
             generatedMesh.MarkDynamic();
 
             meshFilter.sharedMesh = generatedMesh;
+
             meshRenderer.sharedMaterial =
-                wetMaterial != null ? wetMaterial : dryMaterial;
+                wetMaterial != null
+                    ? wetMaterial
+                    : dryMaterial;
 
             meshCollider.sharedMesh = null;
 
-            materialPropertyBlock = new MaterialPropertyBlock();
+            materialPropertyBlock =
+                new MaterialPropertyBlock();
 
             State = OilStrokeState.Wet;
             ApplyLifecycleVisual(0f);
@@ -105,7 +112,9 @@ namespace PaintedAlive.Paint
             lifecycleElapsed += Time.deltaTime;
 
             float wetEnd = config.WetDuration;
-            float dryEnd = wetEnd + config.DryingDuration;
+
+            float dryEnd =
+                wetEnd + config.DryingDuration;
 
             if (lifecycleElapsed < wetEnd)
             {
@@ -119,10 +128,11 @@ namespace PaintedAlive.Paint
             {
                 State = OilStrokeState.Drying;
 
-                float dryingProgress = Mathf.InverseLerp(
-                    wetEnd,
-                    dryEnd,
-                    lifecycleElapsed);
+                float dryingProgress =
+                    Mathf.InverseLerp(
+                        wetEnd,
+                        dryEnd,
+                        lifecycleElapsed);
 
                 ApplyLifecycleVisual(dryingProgress);
                 return;
@@ -132,27 +142,32 @@ namespace PaintedAlive.Paint
             ApplyLifecycleVisual(1f);
         }
 
-        public bool TryAppendWorldPoint(Vector3 worldPoint)
+        public bool TryAppendWorldPoint(
+            Vector3 worldPoint)
         {
             if (config == null ||
-                controlPoints.Count >= config.MaximumControlPoints)
+                controlPoints.Count >=
+                config.MaximumControlPoints)
             {
                 return false;
             }
 
             Vector3 localPoint =
-                transform.InverseTransformPoint(worldPoint);
+                transform.InverseTransformPoint(
+                    worldPoint);
 
             if (controlPoints.Count > 0)
             {
                 Vector3 previousPoint =
-                    controlPoints[controlPoints.Count - 1];
+                    controlPoints[
+                        controlPoints.Count - 1];
 
                 float minimumDistanceSquared =
                     config.ControlPointSpacing *
                     config.ControlPointSpacing;
 
-                if ((localPoint - previousPoint).sqrMagnitude <
+                if ((localPoint - previousPoint)
+                    .sqrMagnitude <
                     minimumDistanceSquared)
                 {
                     return false;
@@ -210,7 +225,8 @@ namespace PaintedAlive.Paint
             }
 
             Vector3 localPoint =
-                transform.InverseTransformPoint(worldPoint);
+                transform.InverseTransformPoint(
+                    worldPoint);
 
             var localFloatPoint = new float3(
                 localPoint.x,
@@ -234,16 +250,19 @@ namespace PaintedAlive.Paint
                 0.5f /
                 splineLength;
 
-            normalizedHalfWidth = Mathf.Clamp(
-                normalizedHalfWidth,
-                0.002f,
-                0.5f);
+            normalizedHalfWidth =
+                Mathf.Clamp(
+                    normalizedHalfWidth,
+                    0.002f,
+                    0.5f);
 
             Vector2 newInterval = new(
                 Mathf.Clamp01(
-                    normalizedT - normalizedHalfWidth),
+                    normalizedT -
+                    normalizedHalfWidth),
                 Mathf.Clamp01(
-                    normalizedT + normalizedHalfWidth));
+                    normalizedT +
+                    normalizedHalfWidth));
 
             AddAndMergeCutInterval(newInterval);
             RebuildMesh();
@@ -310,9 +329,14 @@ namespace PaintedAlive.Paint
                     continue;
                 }
 
-                cutIntervals[i - 1] = new Vector2(
-                    Mathf.Min(previous.x, current.x),
-                    Mathf.Max(previous.y, current.y));
+                cutIntervals[i - 1] =
+                    new Vector2(
+                        Mathf.Min(
+                            previous.x,
+                            current.x),
+                        Mathf.Max(
+                            previous.y,
+                            current.y));
 
                 cutIntervals.RemoveAt(i);
             }
@@ -322,7 +346,8 @@ namespace PaintedAlive.Paint
             float startT,
             float endT)
         {
-            foreach (Vector2 interval in cutIntervals)
+            foreach (Vector2 interval
+                     in cutIntervals)
             {
                 bool overlaps =
                     interval.x < endT &&
@@ -340,7 +365,9 @@ namespace PaintedAlive.Paint
         private void RebuildMesh()
         {
             int segmentCount =
-                Mathf.Max(1, spline.Count - 1);
+                Mathf.Max(
+                    1,
+                    spline.Count - 1);
 
             int sampleCount =
                 segmentCount *
@@ -353,21 +380,24 @@ namespace PaintedAlive.Paint
 
             var triangles =
                 new List<int>(
-                    (sampleCount - 1) * 24 + 24);
+                    (sampleCount - 1) *
+                    24 +
+                    24);
 
             var uv =
                 new List<Vector2>(
                     sampleCount * 4);
 
             float halfWidth =
-                config.Width * 0.5f;
+                config.GetWidth(Shape) * 0.5f;
 
             for (int i = 0;
                  i < sampleCount;
                  i++)
             {
                 float t =
-                    i / (float)(sampleCount - 1);
+                    i /
+                    (float)(sampleCount - 1);
 
                 bool evaluated =
                     splineContainer.Evaluate(
@@ -389,18 +419,20 @@ namespace PaintedAlive.Paint
                             worldPosition.z));
 
                 Vector3 localTangent =
-                    transform.InverseTransformDirection(
-                        new Vector3(
-                            worldTangent.x,
-                            worldTangent.y,
-                            worldTangent.z));
+                    transform
+                        .InverseTransformDirection(
+                            new Vector3(
+                                worldTangent.x,
+                                worldTangent.y,
+                                worldTangent.z));
 
                 localTangent =
                     Vector3.ProjectOnPlane(
                         localTangent,
                         Vector3.up);
 
-                if (localTangent.sqrMagnitude < 0.0001f)
+                if (localTangent.sqrMagnitude <
+                    0.0001f)
                 {
                     localTangent =
                         Vector3.forward;
@@ -410,9 +442,9 @@ namespace PaintedAlive.Paint
 
                 Vector3 side =
                     Vector3.Cross(
-                        Vector3.up,
-                        localTangent)
-                    .normalized;
+                            Vector3.up,
+                            localTangent)
+                        .normalized;
 
                 Vector3 bottomLeft =
                     localPosition -
@@ -422,13 +454,20 @@ namespace PaintedAlive.Paint
                     localPosition +
                     side * halfWidth;
 
+                float sampleHeight =
+                    config.GetHeight(
+                        Shape,
+                        t);
+
                 Vector3 topLeft =
                     bottomLeft +
-                    Vector3.up * config.Height;
+                    Vector3.up *
+                    sampleHeight;
 
                 Vector3 topRight =
                     bottomRight +
-                    Vector3.up * config.Height;
+                    Vector3.up *
+                    sampleHeight;
 
                 vertices.Add(bottomLeft);
                 vertices.Add(bottomRight);
@@ -452,14 +491,17 @@ namespace PaintedAlive.Paint
                  i++)
             {
                 float startT =
-                    i / (float)meshSegmentCount;
+                    i /
+                    (float)meshSegmentCount;
 
                 float endT =
                     (i + 1) /
                     (float)meshSegmentCount;
 
                 cutSegments[i] =
-                    IsSegmentCut(startT, endT);
+                    IsSegmentCut(
+                        startT,
+                        endT);
             }
 
             for (int i = 0;
@@ -531,7 +573,8 @@ namespace PaintedAlive.Paint
                     cutSegments[i - 1];
 
                 bool needsEndCap =
-                    i == meshSegmentCount - 1 ||
+                    i ==
+                    meshSegmentCount - 1 ||
                     cutSegments[i + 1];
 
                 if (needsStartCap)
@@ -620,16 +663,20 @@ namespace PaintedAlive.Paint
             }
 
             Color wetColor =
-                GetMaterialColor(fallbackWet);
+                GetMaterialColor(
+                    fallbackWet);
 
             Color dryColor =
-                GetMaterialColor(fallbackDry);
+                GetMaterialColor(
+                    fallbackDry);
 
             float wetSmoothness =
-                GetMaterialSmoothness(fallbackWet);
+                GetMaterialSmoothness(
+                    fallbackWet);
 
             float drySmoothness =
-                GetMaterialSmoothness(fallbackDry);
+                GetMaterialSmoothness(
+                    fallbackDry);
 
             materialPropertyBlock.Clear();
 
@@ -654,16 +701,20 @@ namespace PaintedAlive.Paint
         private static Color GetMaterialColor(
             Material material)
         {
-            return material.HasProperty(BaseColorId)
-                ? material.GetColor(BaseColorId)
+            return material.HasProperty(
+                    BaseColorId)
+                ? material.GetColor(
+                    BaseColorId)
                 : Color.white;
         }
 
         private static float GetMaterialSmoothness(
             Material material)
         {
-            return material.HasProperty(SmoothnessId)
-                ? material.GetFloat(SmoothnessId)
+            return material.HasProperty(
+                    SmoothnessId)
+                ? material.GetFloat(
+                    SmoothnessId)
                 : 0.5f;
         }
 

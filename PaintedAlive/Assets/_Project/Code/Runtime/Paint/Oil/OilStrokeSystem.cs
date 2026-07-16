@@ -6,76 +6,118 @@ namespace PaintedAlive.Paint
     [DisallowMultipleComponent]
     public sealed class OilStrokeSystem : MonoBehaviour
     {
-        private const string StrokeLayerName = "OilPaint";
+        private const string StrokeLayerName =
+            "OilPaint";
 
         [Header("Configuration")]
-        [SerializeField] private OilStrokeConfig config;
-        [SerializeField] private Material wetMaterial;
-        [SerializeField] private Material dryMaterial;
+        [SerializeField]
+        private OilStrokeConfig config;
+
+        [SerializeField]
+        private Material wetMaterial;
+
+        [SerializeField]
+        private Material dryMaterial;
 
         [Header("Runtime Hierarchy")]
-        [SerializeField] private Transform strokesRoot;
+        [SerializeField]
+        private Transform strokesRoot;
 
-        private readonly List<OilStrokeRuntime> strokes = new();
+        private readonly List<OilStrokeRuntime> strokes =
+            new();
 
         private OilStrokeRuntime activeStroke;
         private int nextStrokeId = 1;
 
-        public bool IsDrawing => activeStroke != null;
+        public bool IsDrawing =>
+            activeStroke != null;
 
         public float SurfaceOffset =>
-            config != null ? config.SurfaceOffset : 0f;
+            config != null
+                ? config.SurfaceOffset
+                : 0f;
 
-        public IReadOnlyList<OilStrokeRuntime> Strokes => strokes;
+        public IReadOnlyList<OilStrokeRuntime> Strokes =>
+            strokes;
 
-        public bool BeginStroke(Vector3 worldPoint)
+        public float GetPreviewWidth(
+            OilStrokeShape shape)
+        {
+            return config != null
+                ? config.GetWidth(shape)
+                : 0.5f;
+        }
+
+        public float GetPigmentMultiplier(
+            OilStrokeShape shape)
+        {
+            return config != null
+                ? config.GetPigmentMultiplier(shape)
+                : 1f;
+        }
+
+        public bool BeginStroke(
+            Vector3 worldPoint,
+            OilStrokeShape shape)
         {
             EndStroke();
 
             if (config == null)
             {
                 Debug.LogError(
-                    $"{nameof(OilStrokeSystem)} requires a config.",
+                    $"{nameof(OilStrokeSystem)} " +
+                    "requires a config.",
                     this);
 
                 return false;
             }
 
-            Transform parent = strokesRoot != null
-                ? strokesRoot
-                : transform;
+            Transform parent =
+                strokesRoot != null
+                    ? strokesRoot
+                    : transform;
 
-            var strokeObject = new GameObject(
-                $"OilStroke_{nextStrokeId:0000}");
+            var strokeObject =
+                new GameObject(
+                    $"OilStroke_" +
+                    $"{nextStrokeId:0000}");
 
             strokeObject.transform.SetParent(
                 parent,
                 false);
 
-            int strokeLayer = LayerMask.NameToLayer(
-                StrokeLayerName);
+            int strokeLayer =
+                LayerMask.NameToLayer(
+                    StrokeLayerName);
 
             if (strokeLayer >= 0)
             {
-                strokeObject.layer = strokeLayer;
+                strokeObject.layer =
+                    strokeLayer;
             }
             else
             {
                 Debug.LogWarning(
-                    $"Layer '{StrokeLayerName}' does not exist.",
+                    $"Layer '{StrokeLayerName}' " +
+                    "does not exist.",
                     this);
             }
 
             activeStroke =
-                strokeObject.AddComponent<OilStrokeRuntime>();
+                strokeObject
+                    .AddComponent<
+                        OilStrokeRuntime>();
 
             activeStroke.Initialize(
                 config,
                 wetMaterial,
-                dryMaterial);
+                dryMaterial,
+                shape);
 
             bool pointAccepted =
-                activeStroke.TryAppendWorldPoint(worldPoint);
+                activeStroke
+                    .TryAppendWorldPoint(
+                        worldPoint);
 
             if (!pointAccepted)
             {
@@ -91,15 +133,17 @@ namespace PaintedAlive.Paint
             return true;
         }
 
-        public bool AppendStrokePoint(Vector3 worldPoint)
+        public bool AppendStrokePoint(
+            Vector3 worldPoint)
         {
             if (activeStroke == null)
             {
                 return false;
             }
 
-            return activeStroke.TryAppendWorldPoint(
-                worldPoint);
+            return activeStroke
+                .TryAppendWorldPoint(
+                    worldPoint);
         }
 
         public void EndStroke()
@@ -114,10 +158,14 @@ namespace PaintedAlive.Paint
 
             activeStroke = null;
 
-            if (!completedStroke.HasRenderableGeometry)
+            if (!completedStroke
+                .HasRenderableGeometry)
             {
-                strokes.Remove(completedStroke);
-                Destroy(completedStroke.gameObject);
+                strokes.Remove(
+                    completedStroke);
+
+                Destroy(
+                    completedStroke.gameObject);
 
                 return;
             }
@@ -138,7 +186,8 @@ namespace PaintedAlive.Paint
 
                 if (stroke != null)
                 {
-                    Destroy(stroke.gameObject);
+                    Destroy(
+                        stroke.gameObject);
                 }
             }
 

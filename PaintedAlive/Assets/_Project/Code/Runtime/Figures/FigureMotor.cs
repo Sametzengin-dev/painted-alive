@@ -1,3 +1,4 @@
+using PaintedAlive.Paint;
 using UnityEngine;
 
 namespace PaintedAlive.Figures
@@ -8,8 +9,11 @@ namespace PaintedAlive.Figures
     public sealed class FigureMotor : MonoBehaviour
     {
         [Header("Dependencies")]
-        [SerializeField] private FigureMovementConfig config;
-        [SerializeField] private Transform movementReference;
+        [SerializeField]
+        private FigureMovementConfig config;
+
+        [SerializeField]
+        private Transform movementReference;
 
         private CharacterController characterController;
         private FigureInputReader inputReader;
@@ -20,8 +24,16 @@ namespace PaintedAlive.Figures
         private float coyoteTimeRemaining;
         private float jumpBufferRemaining;
 
+        private OilStrokeRuntime currentPaintSurface;
+
+        private Vector3 currentPaintSurfaceNormal =
+            Vector3.up;
+
+        private float paintSurfaceContactRemaining;
+
         public Vector3 Velocity =>
-            horizontalVelocity + Vector3.up * verticalVelocity;
+            horizontalVelocity +
+            Vector3.up * verticalVelocity;
 
         public bool IsGrounded =>
             characterController != null &&
@@ -61,6 +73,7 @@ namespace PaintedAlive.Figures
         {
             float deltaTime = Time.deltaTime;
 
+            UpdatePaintSurfaceContact(deltaTime);
             UpdateGroundTimers(deltaTime);
             UpdateJumpBuffer(deltaTime);
             UpdateHorizontalVelocity(deltaTime);
@@ -101,9 +114,14 @@ namespace PaintedAlive.Figures
             rotationVelocity = 0f;
             coyoteTimeRemaining = 0f;
             jumpBufferRemaining = 0f;
+
+            currentPaintSurface = null;
+            currentPaintSurfaceNormal = Vector3.up;
+            paintSurfaceContactRemaining = 0f;
         }
 
-        private void UpdateGroundTimers(float deltaTime)
+        private void UpdateGroundTimers(
+            float deltaTime)
         {
             if (characterController.isGrounded)
             {
@@ -122,7 +140,8 @@ namespace PaintedAlive.Figures
             }
         }
 
-        private void UpdateJumpBuffer(float deltaTime)
+        private void UpdateJumpBuffer(
+            float deltaTime)
         {
             if (inputReader.JumpPressedThisFrame)
             {
@@ -138,8 +157,7 @@ namespace PaintedAlive.Figures
         private void UpdateHorizontalVelocity(
             float deltaTime)
         {
-            Vector2 moveInput =
-                inputReader.Move;
+            Vector2 moveInput = inputReader.Move;
 
             float inputMagnitude =
                 Mathf.Clamp01(moveInput.magnitude);
@@ -166,10 +184,18 @@ namespace PaintedAlive.Figures
                 desiredDirection.Normalize();
             }
 
+            GetPaintSurfaceModifiers(
+                out float accelerationMultiplier,
+                out float decelerationMultiplier,
+                out float speedMultiplier,
+                out float slideAcceleration);
+
             float maximumSpeed =
                 inputReader.SprintHeld
                     ? config.SprintSpeed
                     : config.WalkSpeed;
+
+            maximumSpeed *= speedMultiplier;
 
             Vector3 desiredVelocity =
                 desiredDirection *
@@ -183,8 +209,10 @@ namespace PaintedAlive.Figures
             if (characterController.isGrounded)
             {
                 acceleration = hasMovementInput
-                    ? config.GroundAcceleration
-                    : config.GroundDeceleration;
+                    ? config.GroundAcceleration *
+                      accelerationMultiplier
+                    : config.GroundDeceleration *
+                      decelerationMultiplier;
             }
             else
             {
@@ -193,16 +221,32 @@ namespace PaintedAlive.Figures
                     : 0f;
             }
 
-            if (acceleration <= 0f)
+            if (acceleration > 0f)
             {
-                return;
+                horizontalVelocity =
+                    Vector3.MoveTowards(
+                        horizontalVelocity,
+                        desiredVelocity,
+                        acceleration * deltaTime);
             }
 
-            horizontalVelocity =
-                Vector3.MoveTowards(
-                    horizontalVelocity,
-                    desiredVelocity,
-                    acceleration * deltaTime);
+            if (characterController.isGrounded &&
+                slideAcceleration > 0f)
+            {
+                Vector3 downhillDirection =
+                    Vector3.ProjectOnPlane(
+                        Vector3.down,
+                        currentPaintSurfaceNormal);
+
+                if (downhillDirection.sqrMagnitude >
+                    0.001f)
+                {
+                    horizontalVelocity +=
+                        downhillDirection.normalized *
+                        slideAcceleration *
+                        deltaTime;
+                }
+            }
         }
 
         private void UpdateVerticalVelocity(
@@ -233,7 +277,8 @@ namespace PaintedAlive.Figures
                     -config.MaximumFallSpeed);
         }
 
-        private void MoveCharacter(float deltaTime)
+        private void MoveCharacter(
+            float deltaTime)
         {
             Vector3 motion =
                 (
@@ -260,7 +305,8 @@ namespace PaintedAlive.Figures
             }
         }
 
-        private void RotateCharacter(float deltaTime)
+        private void RotateCharacter(
+            float deltaTime)
         {
             Vector3 planarVelocity =
                 Vector3.ProjectOnPlane(
@@ -292,6 +338,94 @@ namespace PaintedAlive.Figures
                     0f,
                     smoothedAngle,
                     0f);
+        }
+
+        private void UpdatePaintSurfaceContact(
+            float deltaTime)
+        {
+            if (paintSurfaceContactRemaining <= 0f)
+            {
+                currentPaintSurface = null;
+                currentPaintSurfaceNormal = Vector3.up;
+                return;
+            }
+
+            paintSurfaceContactRemaining -= deltaTime;
+        }
+
+        private void OnControllerColliderHit(
+            ControllerColliderHit hit)
+        {
+            if (hit.normal.y < 0.35f)
+            {
+                return;
+            }
+
+            OilStrokeRuntime paintSurface =
+                hit.collider
+                    .GetComponentInParent<
+                        OilStrokeRuntime>();
+
+            if (paintSurface == null)
+            {
+                return;
+            }
+
+            currentPaintSurface = paintSurface;
+            currentPaintSurfaceNormal = hit.normal;
+            paintSurfaceContactRemaining = 0.15f;
+        }
+
+        private void GetPaintSurfaceModifiers(
+            out float accelerationMultiplier,
+            out float decelerationMultiplier,
+            out float speedMultiplier,
+            out float slideAcceleration)
+        {
+            accelerationMultiplier = 1f;
+            decelerationMultiplier = 1f;
+            speedMultiplier = 1f;
+            slideAcceleration = 0f;
+
+            if (currentPaintSurface == null)
+            {
+                return;
+            }
+
+            switch (currentPaintSurface.State)
+            {
+                case OilStrokeState.Wet:
+                    accelerationMultiplier =
+                        config.WetAccelerationMultiplier;
+
+                    decelerationMultiplier =
+                        config.WetDecelerationMultiplier;
+
+                    speedMultiplier =
+                        config.WetSpeedMultiplier;
+
+                    slideAcceleration =
+                        config.WetSlideAcceleration;
+
+                    break;
+
+                case OilStrokeState.Drying:
+                    accelerationMultiplier =
+                        config
+                            .DryingAccelerationMultiplier;
+
+                    decelerationMultiplier =
+                        config
+                            .DryingDecelerationMultiplier;
+
+                    speedMultiplier =
+                        config.DryingSpeedMultiplier;
+
+                    slideAcceleration =
+                        config.DryingSlideAcceleration;
+
+                    break;
+            }
         }
     }
 }

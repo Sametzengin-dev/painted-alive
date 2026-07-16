@@ -2,14 +2,28 @@ using UnityEngine;
 
 namespace PaintedAlive.Paint
 {
+    public enum OilStrokeShape
+    {
+        Wall,
+        Ramp
+    }
+
     [CreateAssetMenu(
         fileName = "OilStrokeConfig",
         menuName = "Painted Alive/Paint/Oil Stroke Config")]
     public sealed class OilStrokeConfig : ScriptableObject
     {
-        [Header("Geometry")]
+        [Header("Wall Geometry")]
         [SerializeField, Min(0.05f)] private float width = 0.65f;
         [SerializeField, Min(0.05f)] private float height = 1.4f;
+
+        [Header("Ramp Geometry")]
+        [SerializeField, Min(0.1f)] private float rampWidth = 1.4f;
+        [SerializeField, Min(0.05f)] private float rampStartHeight = 0.08f;
+        [SerializeField, Min(0.1f)] private float rampEndHeight = 2.2f;
+        [SerializeField, Min(1f)] private float rampPigmentMultiplier = 1.35f;
+
+        [Header("Common Geometry")]
         [SerializeField, Min(0f)] private float surfaceOffset = 0.025f;
 
         [Header("Sampling")]
@@ -38,6 +52,10 @@ namespace PaintedAlive.Paint
 
         public float Width => width;
         public float Height => height;
+        public float RampWidth => rampWidth;
+        public float RampStartHeight => rampStartHeight;
+        public float RampEndHeight => rampEndHeight;
+        public float RampPigmentMultiplier => rampPigmentMultiplier;
         public float SurfaceOffset => surfaceOffset;
         public float ControlPointSpacing => controlPointSpacing;
         public int SamplesPerSegment => samplesPerSegment;
@@ -48,10 +66,48 @@ namespace PaintedAlive.Paint
         public float DryingCutMultiplier => dryingCutMultiplier;
         public float DryCutMultiplier => dryCutMultiplier;
 
+        public float GetWidth(OilStrokeShape shape)
+        {
+            return shape == OilStrokeShape.Ramp
+                ? rampWidth
+                : width;
+        }
+
+        public float GetHeight(
+            OilStrokeShape shape,
+            float normalizedPosition)
+        {
+            if (shape == OilStrokeShape.Wall)
+            {
+                return height;
+            }
+
+            float smoothPosition = Mathf.SmoothStep(
+                0f,
+                1f,
+                Mathf.Clamp01(normalizedPosition));
+
+            return Mathf.Lerp(
+                rampStartHeight,
+                rampEndHeight,
+                smoothPosition);
+        }
+
+        public float GetPigmentMultiplier(OilStrokeShape shape)
+        {
+            return shape == OilStrokeShape.Ramp
+                ? rampPigmentMultiplier
+                : 1f;
+        }
+
         private void OnValidate()
         {
             width = Mathf.Max(0.05f, width);
             height = Mathf.Max(0.05f, height);
+            rampWidth = Mathf.Max(0.1f, rampWidth);
+            rampStartHeight = Mathf.Max(0.05f, rampStartHeight);
+            rampEndHeight = Mathf.Max(rampStartHeight, rampEndHeight);
+            rampPigmentMultiplier = Mathf.Max(1f, rampPigmentMultiplier);
             surfaceOffset = Mathf.Max(0f, surfaceOffset);
             controlPointSpacing = Mathf.Max(0.02f, controlPointSpacing);
             samplesPerSegment = Mathf.Clamp(samplesPerSegment, 1, 12);
