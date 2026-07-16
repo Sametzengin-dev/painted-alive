@@ -26,7 +26,7 @@ namespace PaintedAlive.Paint
         public float SurfaceOffset =>
             config != null ? config.SurfaceOffset : 0f;
 
-        public void BeginStroke(Vector3 worldPoint)
+        public bool BeginStroke(Vector3 worldPoint)
         {
             EndStroke();
 
@@ -36,7 +36,7 @@ namespace PaintedAlive.Paint
                     $"{nameof(OilStrokeSystem)} requires a config.",
                     this);
 
-                return;
+                return false;
             }
 
             Transform parent = strokesRoot != null
@@ -45,8 +45,6 @@ namespace PaintedAlive.Paint
 
             var strokeObject = new GameObject(
                 $"OilStroke_{nextStrokeId:0000}");
-
-            nextStrokeId++;
 
             strokeObject.transform.SetParent(parent, false);
 
@@ -72,16 +70,31 @@ namespace PaintedAlive.Paint
                 wetMaterial,
                 dryMaterial);
 
-            activeStroke.TryAppendWorldPoint(worldPoint);
+            bool pointAccepted =
+                activeStroke.TryAppendWorldPoint(worldPoint);
+
+            if (!pointAccepted)
+            {
+                Destroy(strokeObject);
+                activeStroke = null;
+
+                return false;
+            }
+
             strokes.Add(activeStroke);
+            nextStrokeId++;
+
+            return true;
         }
 
-        public void AppendStrokePoint(Vector3 worldPoint)
+        public bool AppendStrokePoint(Vector3 worldPoint)
         {
-            if (activeStroke != null)
+            if (activeStroke == null)
             {
-                activeStroke.TryAppendWorldPoint(worldPoint);
+                return false;
             }
+
+            return activeStroke.TryAppendWorldPoint(worldPoint);
         }
 
         public void EndStroke()
@@ -98,6 +111,7 @@ namespace PaintedAlive.Paint
             {
                 strokes.Remove(completedStroke);
                 Destroy(completedStroke.gameObject);
+
                 return;
             }
 
@@ -110,9 +124,11 @@ namespace PaintedAlive.Paint
 
             for (int i = strokes.Count - 1; i >= 0; i--)
             {
-                if (strokes[i] != null)
+                OilStrokeRuntime stroke = strokes[i];
+
+                if (stroke != null)
                 {
-                    Destroy(strokes[i].gameObject);
+                    Destroy(stroke.gameObject);
                 }
             }
 
