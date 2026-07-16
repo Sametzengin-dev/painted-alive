@@ -24,54 +24,73 @@ namespace PaintedAlive.Core.Prototypes
         [SerializeField] private Behaviour[] painterBehaviours;
 
         private PrototypeRole currentRole;
+        private bool interactionsLocked;
 
         private void Start()
         {
-            SetRole(initialRole);
+            currentRole = initialRole;
+            ApplyState();
         }
 
         private void Update()
         {
-            if (Keyboard.current == null)
+            if (interactionsLocked ||
+                Keyboard.current == null)
             {
                 return;
             }
 
             if (Keyboard.current.f1Key.wasPressedThisFrame)
             {
-                SetRole(PrototypeRole.Figure);
+                SelectFigure();
             }
 
             if (Keyboard.current.f2Key.wasPressedThisFrame)
             {
-                SetRole(PrototypeRole.Painter);
+                SelectPainter();
             }
         }
 
-        private void SetRole(PrototypeRole role)
+        public void SelectFigure()
         {
-            currentRole = role;
+            currentRole = PrototypeRole.Figure;
+            ApplyState();
+        }
 
-            bool figureActive =
+        public void SelectPainter()
+        {
+            currentRole = PrototypeRole.Painter;
+            ApplyState();
+        }
+
+        public void SetInteractionsLocked(bool locked)
+        {
+            interactionsLocked = locked;
+            ApplyState();
+        }
+
+        private void ApplyState()
+        {
+            bool figureSelected =
                 currentRole == PrototypeRole.Figure;
-
-            SetBehavioursEnabled(
-                figureBehaviours,
-                figureActive);
-
-            SetBehavioursEnabled(
-                painterBehaviours,
-                !figureActive);
 
             if (figureCamera != null)
             {
-                figureCamera.SetActive(figureActive);
+                figureCamera.SetActive(figureSelected);
             }
 
             if (painterCamera != null)
             {
-                painterCamera.SetActive(!figureActive);
+                painterCamera.SetActive(!figureSelected);
             }
+
+            SetBehavioursEnabled(
+                figureBehaviours,
+                figureSelected && !interactionsLocked);
+
+            SetBehavioursEnabled(
+                painterBehaviours,
+                !figureSelected && !interactionsLocked);
         }
 
         private static void SetBehavioursEnabled(

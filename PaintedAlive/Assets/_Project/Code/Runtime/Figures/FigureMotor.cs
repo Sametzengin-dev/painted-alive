@@ -23,17 +23,23 @@ namespace PaintedAlive.Figures
         public Vector3 Velocity =>
             horizontalVelocity + Vector3.up * verticalVelocity;
 
-        public bool IsGrounded => characterController.isGrounded;
+        public bool IsGrounded =>
+            characterController != null &&
+            characterController.isGrounded;
 
         private void Awake()
         {
-            characterController = GetComponent<CharacterController>();
-            inputReader = GetComponent<FigureInputReader>();
+            characterController =
+                GetComponent<CharacterController>();
+
+            inputReader =
+                GetComponent<FigureInputReader>();
 
             if (config == null)
             {
                 Debug.LogError(
-                    $"{nameof(FigureMotor)} on {name} requires a movement config.",
+                    $"{nameof(FigureMotor)} on {name} " +
+                    "requires a movement config.",
                     this);
 
                 enabled = false;
@@ -43,7 +49,8 @@ namespace PaintedAlive.Figures
             if (movementReference == null)
             {
                 Debug.LogError(
-                    $"{nameof(FigureMotor)} on {name} requires a movement reference.",
+                    $"{nameof(FigureMotor)} on {name} " +
+                    "requires a movement reference.",
                     this);
 
                 enabled = false;
@@ -62,15 +69,51 @@ namespace PaintedAlive.Figures
             RotateCharacter(deltaTime);
         }
 
+        public void Teleport(
+            Vector3 worldPosition,
+            Quaternion worldRotation)
+        {
+            if (characterController == null)
+            {
+                characterController =
+                    GetComponent<CharacterController>();
+            }
+
+            bool controllerWasEnabled =
+                characterController.enabled;
+
+            characterController.enabled = false;
+
+            transform.SetPositionAndRotation(
+                worldPosition,
+                worldRotation);
+
+            characterController.enabled =
+                controllerWasEnabled;
+
+            ResetMotion();
+        }
+
+        public void ResetMotion()
+        {
+            horizontalVelocity = Vector3.zero;
+            verticalVelocity = 0f;
+            rotationVelocity = 0f;
+            coyoteTimeRemaining = 0f;
+            jumpBufferRemaining = 0f;
+        }
+
         private void UpdateGroundTimers(float deltaTime)
         {
             if (characterController.isGrounded)
             {
-                coyoteTimeRemaining = config.CoyoteTime;
+                coyoteTimeRemaining =
+                    config.CoyoteTime;
 
                 if (verticalVelocity < 0f)
                 {
-                    verticalVelocity = config.GroundedForce;
+                    verticalVelocity =
+                        config.GroundedForce;
                 }
             }
             else
@@ -83,7 +126,8 @@ namespace PaintedAlive.Figures
         {
             if (inputReader.JumpPressedThisFrame)
             {
-                jumpBufferRemaining = config.JumpBufferTime;
+                jumpBufferRemaining =
+                    config.JumpBufferTime;
             }
             else
             {
@@ -91,18 +135,24 @@ namespace PaintedAlive.Figures
             }
         }
 
-        private void UpdateHorizontalVelocity(float deltaTime)
+        private void UpdateHorizontalVelocity(
+            float deltaTime)
         {
-            Vector2 moveInput = inputReader.Move;
-            float inputMagnitude = Mathf.Clamp01(moveInput.magnitude);
+            Vector2 moveInput =
+                inputReader.Move;
 
-            Vector3 cameraForward = Vector3.ProjectOnPlane(
-                movementReference.forward,
-                Vector3.up);
+            float inputMagnitude =
+                Mathf.Clamp01(moveInput.magnitude);
 
-            Vector3 cameraRight = Vector3.ProjectOnPlane(
-                movementReference.right,
-                Vector3.up);
+            Vector3 cameraForward =
+                Vector3.ProjectOnPlane(
+                    movementReference.forward,
+                    Vector3.up);
+
+            Vector3 cameraRight =
+                Vector3.ProjectOnPlane(
+                    movementReference.right,
+                    Vector3.up);
 
             cameraForward.Normalize();
             cameraRight.Normalize();
@@ -116,14 +166,18 @@ namespace PaintedAlive.Figures
                 desiredDirection.Normalize();
             }
 
-            float maximumSpeed = inputReader.SprintHeld
-                ? config.SprintSpeed
-                : config.WalkSpeed;
+            float maximumSpeed =
+                inputReader.SprintHeld
+                    ? config.SprintSpeed
+                    : config.WalkSpeed;
 
             Vector3 desiredVelocity =
-                desiredDirection * (maximumSpeed * inputMagnitude);
+                desiredDirection *
+                (maximumSpeed * inputMagnitude);
 
-            bool hasMovementInput = inputMagnitude > 0.01f;
+            bool hasMovementInput =
+                inputMagnitude > 0.01f;
+
             float acceleration;
 
             if (characterController.isGrounded)
@@ -139,16 +193,20 @@ namespace PaintedAlive.Figures
                     : 0f;
             }
 
-            if (acceleration > 0f)
+            if (acceleration <= 0f)
             {
-                horizontalVelocity = Vector3.MoveTowards(
+                return;
+            }
+
+            horizontalVelocity =
+                Vector3.MoveTowards(
                     horizontalVelocity,
                     desiredVelocity,
                     acceleration * deltaTime);
-            }
         }
 
-        private void UpdateVerticalVelocity(float deltaTime)
+        private void UpdateVerticalVelocity(
+            float deltaTime)
         {
             bool canJump =
                 jumpBufferRemaining > 0f &&
@@ -156,69 +214,84 @@ namespace PaintedAlive.Figures
 
             if (canJump)
             {
-                verticalVelocity = Mathf.Sqrt(
-                    config.JumpHeight * -2f * config.Gravity);
+                verticalVelocity =
+                    Mathf.Sqrt(
+                        config.JumpHeight *
+                        -2f *
+                        config.Gravity);
 
                 jumpBufferRemaining = 0f;
                 coyoteTimeRemaining = 0f;
             }
 
-            verticalVelocity += config.Gravity * deltaTime;
+            verticalVelocity +=
+                config.Gravity * deltaTime;
 
-            verticalVelocity = Mathf.Max(
-                verticalVelocity,
-                -config.MaximumFallSpeed);
+            verticalVelocity =
+                Mathf.Max(
+                    verticalVelocity,
+                    -config.MaximumFallSpeed);
         }
 
         private void MoveCharacter(float deltaTime)
         {
             Vector3 motion =
-                (horizontalVelocity + Vector3.up * verticalVelocity) *
-                deltaTime;
+                (
+                    horizontalVelocity +
+                    Vector3.up * verticalVelocity
+                ) * deltaTime;
 
             CollisionFlags collisionFlags =
                 characterController.Move(motion);
 
-            if ((collisionFlags & CollisionFlags.Above) != 0 &&
+            if ((collisionFlags &
+                 CollisionFlags.Above) != 0 &&
                 verticalVelocity > 0f)
             {
                 verticalVelocity = 0f;
             }
 
-            if ((collisionFlags & CollisionFlags.Below) != 0 &&
+            if ((collisionFlags &
+                 CollisionFlags.Below) != 0 &&
                 verticalVelocity < 0f)
             {
-                verticalVelocity = config.GroundedForce;
+                verticalVelocity =
+                    config.GroundedForce;
             }
         }
 
         private void RotateCharacter(float deltaTime)
         {
-            Vector3 planarVelocity = Vector3.ProjectOnPlane(
-                horizontalVelocity,
-                Vector3.up);
+            Vector3 planarVelocity =
+                Vector3.ProjectOnPlane(
+                    horizontalVelocity,
+                    Vector3.up);
 
             if (planarVelocity.sqrMagnitude < 0.01f)
             {
                 return;
             }
 
-            float targetAngle = Mathf.Atan2(
-                planarVelocity.x,
-                planarVelocity.z) * Mathf.Rad2Deg;
+            float targetAngle =
+                Mathf.Atan2(
+                    planarVelocity.x,
+                    planarVelocity.z) *
+                Mathf.Rad2Deg;
 
-            float smoothedAngle = Mathf.SmoothDampAngle(
-                transform.eulerAngles.y,
-                targetAngle,
-                ref rotationVelocity,
-                config.RotationSmoothTime,
-                Mathf.Infinity,
-                deltaTime);
+            float smoothedAngle =
+                Mathf.SmoothDampAngle(
+                    transform.eulerAngles.y,
+                    targetAngle,
+                    ref rotationVelocity,
+                    config.RotationSmoothTime,
+                    Mathf.Infinity,
+                    deltaTime);
 
-            transform.rotation = Quaternion.Euler(
-                0f,
-                smoothedAngle,
-                0f);
+            transform.rotation =
+                Quaternion.Euler(
+                    0f,
+                    smoothedAngle,
+                    0f);
         }
     }
 }
