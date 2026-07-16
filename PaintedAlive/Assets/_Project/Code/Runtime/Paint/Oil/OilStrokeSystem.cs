@@ -26,6 +26,8 @@ namespace PaintedAlive.Paint
         public float SurfaceOffset =>
             config != null ? config.SurfaceOffset : 0f;
 
+        public IReadOnlyList<OilStrokeRuntime> Strokes => strokes;
+
         public bool BeginStroke(Vector3 worldPoint)
         {
             EndStroke();
@@ -46,7 +48,9 @@ namespace PaintedAlive.Paint
             var strokeObject = new GameObject(
                 $"OilStroke_{nextStrokeId:0000}");
 
-            strokeObject.transform.SetParent(parent, false);
+            strokeObject.transform.SetParent(
+                parent,
+                false);
 
             int strokeLayer = LayerMask.NameToLayer(
                 StrokeLayerName);
@@ -94,7 +98,8 @@ namespace PaintedAlive.Paint
                 return false;
             }
 
-            return activeStroke.TryAppendWorldPoint(worldPoint);
+            return activeStroke.TryAppendWorldPoint(
+                worldPoint);
         }
 
         public void EndStroke()
@@ -104,7 +109,9 @@ namespace PaintedAlive.Paint
                 return;
             }
 
-            OilStrokeRuntime completedStroke = activeStroke;
+            OilStrokeRuntime completedStroke =
+                activeStroke;
+
             activeStroke = null;
 
             if (!completedStroke.HasRenderableGeometry)
@@ -122,9 +129,12 @@ namespace PaintedAlive.Paint
         {
             activeStroke = null;
 
-            for (int i = strokes.Count - 1; i >= 0; i--)
+            for (int i = strokes.Count - 1;
+                 i >= 0;
+                 i--)
             {
-                OilStrokeRuntime stroke = strokes[i];
+                OilStrokeRuntime stroke =
+                    strokes[i];
 
                 if (stroke != null)
                 {

@@ -20,17 +20,24 @@ namespace PaintedAlive.Painters
             config != null ? config.Capacity : 0f;
 
         public float Normalized =>
-            Capacity > 0f ? currentPigment / Capacity : 0f;
+            Capacity > 0f
+                ? currentPigment / Capacity
+                : 0f;
 
         public float StrokeBeginCost =>
-            config != null ? config.StrokeBeginCost : 0f;
+            config != null
+                ? config.StrokeBeginCost
+                : 0f;
+
+        public float TotalSpentThisMatch { get; private set; }
 
         private void Awake()
         {
             if (config == null)
             {
                 Debug.LogError(
-                    $"{nameof(PainterPigmentReservoir)} requires a config.",
+                    $"{nameof(PainterPigmentReservoir)} " +
+                    "requires a config.",
                     this);
 
                 enabled = false;
@@ -49,14 +56,18 @@ namespace PaintedAlive.Painters
                 return;
             }
 
-            float previousValue = currentPigment;
+            float previousValue =
+                currentPigment;
 
             currentPigment = Mathf.Min(
                 config.Capacity,
                 currentPigment +
-                config.RegenerationPerSecond * Time.deltaTime);
+                config.RegenerationPerSecond *
+                Time.deltaTime);
 
-            if (!Mathf.Approximately(previousValue, currentPigment))
+            if (!Mathf.Approximately(
+                    previousValue,
+                    currentPigment))
             {
                 NotifyChanged();
             }
@@ -92,7 +103,10 @@ namespace PaintedAlive.Painters
                 0f,
                 currentPigment - amount);
 
+            TotalSpentThisMatch += amount;
+
             NotifyChanged();
+
             return true;
         }
 
@@ -109,6 +123,8 @@ namespace PaintedAlive.Painters
             }
 
             currentPigment = config.Capacity;
+            TotalSpentThisMatch = 0f;
+
             NotifyChanged();
         }
 

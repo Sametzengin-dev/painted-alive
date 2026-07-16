@@ -3,14 +3,14 @@ using UnityEngine.InputSystem;
 
 namespace PaintedAlive.Core.Prototypes
 {
+    public enum PrototypeRole
+    {
+        Figure,
+        Painter
+    }
+
     public sealed class PrototypeRoleSwitcher : MonoBehaviour
     {
-        private enum PrototypeRole
-        {
-            Figure,
-            Painter
-        }
-
         [Header("Initial State")]
         [SerializeField]
         private PrototypeRole initialRole = PrototypeRole.Figure;
@@ -25,6 +25,8 @@ namespace PaintedAlive.Core.Prototypes
 
         private PrototypeRole currentRole;
         private bool interactionsLocked;
+
+        public PrototypeRole CurrentRole => currentRole;
 
         private void Start()
         {
