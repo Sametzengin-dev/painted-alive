@@ -49,6 +49,13 @@ namespace PaintedAlive.Core.Prototypes
         [SerializeField]
         private PainterPigmentReservoir pigmentReservoir;
 
+        [Header("World Reset")]
+        [SerializeField]
+        private CleanPigmentPickup[] cleanPigmentPickups;
+
+        [SerializeField]
+        private RestorationPoint[] restorationPoints;
+
         public event Action<PrototypeMatchState> StateChanged;
         public event Action<float> CountdownChanged;
         public event Action<float> TimeChanged;
@@ -124,6 +131,30 @@ namespace PaintedAlive.Core.Prototypes
             if (figurePigmentInventory != null)
             {
                 figurePigmentInventory.ResetInventory();
+            }
+
+            if (cleanPigmentPickups != null)
+            {
+                foreach (CleanPigmentPickup pickup
+                         in cleanPigmentPickups)
+                {
+                    if (pickup != null)
+                    {
+                        pickup.ResetPickup();
+                    }
+                }
+            }
+
+            if (restorationPoints != null)
+            {
+                foreach (RestorationPoint point
+                         in restorationPoints)
+                {
+                    if (point != null)
+                    {
+                        point.ResetPoint();
+                    }
+                }
             }
 
             TimeRemaining =
