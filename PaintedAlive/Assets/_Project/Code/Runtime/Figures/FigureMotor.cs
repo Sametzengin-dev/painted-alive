@@ -15,6 +15,9 @@ namespace PaintedAlive.Figures
         [SerializeField]
         private Transform movementReference;
 
+        [SerializeField]
+        private FigureClarityState clarityState;
+
         private CharacterController characterController;
         private FigureInputReader inputReader;
 
@@ -46,6 +49,12 @@ namespace PaintedAlive.Figures
 
             inputReader =
                 GetComponent<FigureInputReader>();
+
+            if (clarityState == null)
+            {
+                clarityState =
+                    GetComponent<FigureClarityState>();
+            }
 
             if (config == null)
             {
@@ -190,10 +199,20 @@ namespace PaintedAlive.Figures
                 out float speedMultiplier,
                 out float slideAcceleration);
 
+            bool canSprint =
+                clarityState == null ||
+                clarityState.CanSprint;
+
             float maximumSpeed =
-                inputReader.SprintHeld
+                inputReader.SprintHeld && canSprint
                     ? config.SprintSpeed
                     : config.WalkSpeed;
+
+            if (clarityState != null)
+            {
+                maximumSpeed *=
+                    clarityState.MovementMultiplier;
+            }
 
             maximumSpeed *= speedMultiplier;
 
@@ -252,9 +271,14 @@ namespace PaintedAlive.Figures
         private void UpdateVerticalVelocity(
             float deltaTime)
         {
+            bool clarityAllowsJump =
+                clarityState == null ||
+                clarityState.CanJump;
+
             bool canJump =
                 jumpBufferRemaining > 0f &&
-                coyoteTimeRemaining > 0f;
+                coyoteTimeRemaining > 0f &&
+                clarityAllowsJump;
 
             if (canJump)
             {

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 359d76a12e5cf4b468308c39707557ce, type: 3}
+  m_Name: CFG_FigureClarity
+  m_EditorClassIdentifier: Assembly-CSharp::PaintedAlive.Figures.FigureClarityConfig
+  maximumClarity: 100
+  stainedThreshold: 0.8
+  distortedThreshold: 0.55
+  dissolvingThreshold: 0.3
+  wetPaintExposure: 12
+  dryingPaintExposure: 4
+  cleanMovement: 1
+  stainedMovement: 0.92
+  distortedMovement: 0.75
+  dissolvingMovement: 0.45
+  stainMovement: 0.35
+  minimumLegMovement: 0.8
+  minimumArmEfficiency: 0.7

@@ -19,27 +19,43 @@ namespace PaintedAlive.Core.Prototypes
     public sealed class PrototypeMatchController : MonoBehaviour
     {
         [Header("Configuration")]
-        [SerializeField] private PrototypeMatchConfig config;
+        [SerializeField]
+        private PrototypeMatchConfig config;
 
         [Header("Flow")]
-        [SerializeField] private PrototypeRoleSwitcher roleSwitcher;
-        [SerializeField] private FigureProgressTracker progressTracker;
+        [SerializeField]
+        private PrototypeRoleSwitcher roleSwitcher;
+
+        [SerializeField]
+        private FigureProgressTracker progressTracker;
 
         [Header("Figure")]
-        [SerializeField] private FigureMotor figureMotor;
-        [SerializeField] private Transform spawnPoint;
+        [SerializeField]
+        private FigureMotor figureMotor;
+
+        [SerializeField]
+        private FigureClarityState figureClarity;
+
+        [SerializeField]
+        private Transform spawnPoint;
 
         [Header("Paint")]
-        [SerializeField] private OilStrokeSystem strokeSystem;
-        [SerializeField] private PainterPigmentReservoir pigmentReservoir;
+        [SerializeField]
+        private OilStrokeSystem strokeSystem;
+
+        [SerializeField]
+        private PainterPigmentReservoir pigmentReservoir;
 
         public event Action<PrototypeMatchState> StateChanged;
         public event Action<float> CountdownChanged;
         public event Action<float> TimeChanged;
 
         public PrototypeMatchState State { get; private set; }
+
         public float CountdownRemaining { get; private set; }
+
         public float TimeRemaining { get; private set; }
+
         public float CompletionTime { get; private set; }
 
         private void Start()
@@ -75,7 +91,8 @@ namespace PaintedAlive.Core.Prototypes
             if (config == null)
             {
                 Debug.LogError(
-                    $"{nameof(PrototypeMatchController)} requires a config.",
+                    $"{nameof(PrototypeMatchController)} " +
+                    "requires a config.",
                     this);
 
                 return;
@@ -88,15 +105,25 @@ namespace PaintedAlive.Core.Prototypes
             pigmentReservoir?.Refill();
             progressTracker?.ResetProgress();
 
-            if (figureMotor != null && spawnPoint != null)
+            if (figureMotor != null &&
+                spawnPoint != null)
             {
                 figureMotor.Teleport(
                     spawnPoint.position,
                     spawnPoint.rotation);
             }
 
-            TimeRemaining = config.MatchDuration;
-            CountdownRemaining = config.CountdownDuration;
+            if (figureClarity != null)
+            {
+                figureClarity.ResetToFull();
+            }
+
+            TimeRemaining =
+                config.MatchDuration;
+
+            CountdownRemaining =
+                config.CountdownDuration;
+
             CompletionTime = 0f;
 
             TimeChanged?.Invoke(TimeRemaining);
@@ -107,8 +134,11 @@ namespace PaintedAlive.Core.Prototypes
             }
             else
             {
-                SetState(PrototypeMatchState.Countdown);
-                CountdownChanged?.Invoke(CountdownRemaining);
+                SetState(
+                    PrototypeMatchState.Countdown);
+
+                CountdownChanged?.Invoke(
+                    CountdownRemaining);
             }
         }
 
@@ -120,19 +150,24 @@ namespace PaintedAlive.Core.Prototypes
             }
 
             CompletionTime =
-                config.MatchDuration - TimeRemaining;
+                config.MatchDuration -
+                TimeRemaining;
 
             roleSwitcher?.SetInteractionsLocked(true);
-            SetState(PrototypeMatchState.FigureEscaped);
+
+            SetState(
+                PrototypeMatchState.FigureEscaped);
         }
 
         private void UpdateCountdown()
         {
             CountdownRemaining = Mathf.Max(
                 0f,
-                CountdownRemaining - Time.deltaTime);
+                CountdownRemaining -
+                Time.deltaTime);
 
-            CountdownChanged?.Invoke(CountdownRemaining);
+            CountdownChanged?.Invoke(
+                CountdownRemaining);
 
             if (CountdownRemaining <= 0f)
             {
@@ -143,25 +178,31 @@ namespace PaintedAlive.Core.Prototypes
         private void StartRunningMatch()
         {
             roleSwitcher?.SetInteractionsLocked(false);
-            SetState(PrototypeMatchState.Running);
+
+            SetState(
+                PrototypeMatchState.Running);
         }
 
         private void UpdateRunningMatch()
         {
             TimeRemaining = Mathf.Max(
                 0f,
-                TimeRemaining - Time.deltaTime);
+                TimeRemaining -
+                Time.deltaTime);
 
             TimeChanged?.Invoke(TimeRemaining);
 
             if (TimeRemaining <= 0f)
             {
                 roleSwitcher?.SetInteractionsLocked(true);
-                SetState(PrototypeMatchState.TimeExpired);
+
+                SetState(
+                    PrototypeMatchState.TimeExpired);
             }
         }
 
-        private void SetState(PrototypeMatchState newState)
+        private void SetState(
+            PrototypeMatchState newState)
         {
             State = newState;
             StateChanged?.Invoke(State);
