@@ -37,6 +37,9 @@ namespace PaintedAlive.Core.Prototypes
         private FigureClarityState figureClarity;
 
         [SerializeField]
+        private FigureCleanPigmentInventory figurePigmentInventory;
+
+        [SerializeField]
         private Transform spawnPoint;
 
         [Header("Paint")]
@@ -116,6 +119,11 @@ namespace PaintedAlive.Core.Prototypes
             if (figureClarity != null)
             {
                 figureClarity.ResetToFull();
+            }
+
+            if (figurePigmentInventory != null)
+            {
+                figurePigmentInventory.ResetInventory();
             }
 
             TimeRemaining =
