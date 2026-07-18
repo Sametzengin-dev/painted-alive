@@ -7,11 +7,18 @@ namespace PaintedAlive.Figures
     {
         [SerializeField] private FigureClarityState clarityState;
         [SerializeField] private StainMarkController markController;
+        [SerializeField] private StainWallCrawlController wallCrawlController;
 
-        [Header("UI")]
+        [Header("Direction Mark UI")]
+        [SerializeField] private Text markAbilityText;
+        [SerializeField] private Slider markCooldownSlider;
+
+        [Header("Wall Crawl UI")]
+        [SerializeField] private Text crawlAbilityText;
+        [SerializeField] private Slider crawlAbilitySlider;
+
+        [Header("Visibility")]
         [SerializeField] private CanvasGroup canvasGroup;
-        [SerializeField] private Text abilityText;
-        [SerializeField] private Slider cooldownSlider;
 
         private void OnEnable()
         {
@@ -31,7 +38,8 @@ namespace PaintedAlive.Figures
         private void Refresh()
         {
             if (clarityState == null ||
-                markController == null)
+                markController == null ||
+                wallCrawlController == null)
             {
                 SetVisible(false);
                 return;
@@ -46,19 +54,54 @@ namespace PaintedAlive.Figures
             if (!isStain)
                 return;
 
-            bool ready = markController.CanPlaceMark;
+            RefreshMarkUI();
+            RefreshCrawlUI();
+        }
 
-            if (abilityText != null)
+        private void RefreshMarkUI()
+        {
+            if (markAbilityText != null)
             {
-                abilityText.text = ready
-                    ? "G  •  YÖN İZİ"
-                    : "YÖN İZİ HAZIRLANIYOR";
+                markAbilityText.text =
+                    markController.CanPlaceMark
+                        ? "G  •  YÖN İZİ"
+                        : "YÖN İZİ HAZIRLANIYOR";
             }
 
-            if (cooldownSlider != null)
+            if (markCooldownSlider != null)
             {
-                cooldownSlider.value =
-                    1f - markController.CooldownNormalized;
+                markCooldownSlider.value =
+                    1f -
+                    markController.CooldownNormalized;
+            }
+        }
+
+        private void RefreshCrawlUI()
+        {
+            if (crawlAbilityText != null)
+            {
+                if (wallCrawlController.IsCrawling)
+                {
+                    crawlAbilityText.text =
+                        "SHIFT BIRAK  •  DUVARI BIRAK";
+                }
+                else if (
+                    wallCrawlController.CrawlCooldownRemaining > 0f)
+                {
+                    crawlAbilityText.text =
+                        "TUTUNMA HAZIRLANIYOR";
+                }
+                else
+                {
+                    crawlAbilityText.text =
+                        "SHIFT BASILI TUT  •  DUVARA YAPIŞ";
+                }
+            }
+
+            if (crawlAbilitySlider != null)
+            {
+                crawlAbilitySlider.value =
+                    wallCrawlController.AbilityNormalized;
             }
         }
 
