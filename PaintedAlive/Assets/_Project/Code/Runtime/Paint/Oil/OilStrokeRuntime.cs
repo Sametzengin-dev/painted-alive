@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
@@ -51,6 +52,19 @@ namespace PaintedAlive.Paint
         public OilStrokeState State { get; private set; }
         public bool IsFinalized => finalized;
         public OilStrokeShape Shape { get; private set; }
+
+        public float LifecycleElapsed => lifecycleElapsed;
+
+        public float LifecycleProgress =>
+            GetTotalLifecycleDuration() > 0f
+                ? Mathf.Clamp01(
+                    lifecycleElapsed /
+                    GetTotalLifecycleDuration())
+                : 1f;
+
+        public event Action<
+            OilStrokeState,
+            OilStrokeState> StateChanged;
 
         public OilStrokePressureProfile PressureProfile =>
             pressureProfile;
@@ -137,6 +151,39 @@ namespace PaintedAlive.Paint
 
             lifecycleElapsed += Time.deltaTime;
 
+            RefreshLifecycleState();
+        }
+
+        public bool TryAdvanceLifecycle(
+            float seconds,
+            out OilStrokeState previousState,
+            out OilStrokeState currentState)
+        {
+            previousState = State;
+            currentState = State;
+
+            if (!finalized ||
+                config == null ||
+                State == OilStrokeState.Dry ||
+                seconds <= 0f)
+            {
+                return false;
+            }
+
+            lifecycleElapsed += seconds;
+            RefreshLifecycleState();
+
+            currentState = State;
+            return true;
+        }
+
+        private void RefreshLifecycleState()
+        {
+            if (config == null)
+            {
+                return;
+            }
+
             float lifecycleMultiplier =
                 Mathf.Max(
                     0.1f,
@@ -155,28 +202,67 @@ namespace PaintedAlive.Paint
 
             if (lifecycleElapsed < wetEnd)
             {
-                State = OilStrokeState.Wet;
-                ApplyLifecycleVisual(0f);
+                SetLifecycleState(
+                    OilStrokeState.Wet,
+                    0f);
+
                 return;
             }
 
             if (dryingDuration > 0f &&
                 lifecycleElapsed < dryEnd)
             {
-                State = OilStrokeState.Drying;
-
                 float dryingProgress =
                     Mathf.InverseLerp(
                         wetEnd,
                         dryEnd,
                         lifecycleElapsed);
 
-                ApplyLifecycleVisual(dryingProgress);
+                SetLifecycleState(
+                    OilStrokeState.Drying,
+                    dryingProgress);
+
                 return;
             }
 
-            State = OilStrokeState.Dry;
-            ApplyLifecycleVisual(1f);
+            SetLifecycleState(
+                OilStrokeState.Dry,
+                1f);
+        }
+
+        private void SetLifecycleState(
+            OilStrokeState nextState,
+            float dryingProgress)
+        {
+            OilStrokeState previousState = State;
+            State = nextState;
+
+            ApplyLifecycleVisual(dryingProgress);
+
+            if (previousState != nextState)
+            {
+                StateChanged?.Invoke(
+                    previousState,
+                    nextState);
+            }
+        }
+
+        private float GetTotalLifecycleDuration()
+        {
+            if (config == null)
+            {
+                return 0f;
+            }
+
+            float lifecycleMultiplier =
+                Mathf.Max(
+                    0.1f,
+                    pressureProfile.LifecycleDurationMultiplier);
+
+            return (
+                config.WetDuration +
+                config.DryingDuration
+            ) * lifecycleMultiplier;
         }
 
         public bool TryAppendWorldPoint(

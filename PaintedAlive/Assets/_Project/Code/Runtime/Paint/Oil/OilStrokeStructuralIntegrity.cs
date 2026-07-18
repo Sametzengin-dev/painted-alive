@@ -83,6 +83,17 @@ namespace PaintedAlive.Paint
         private void ApplyCutDamage()
         {
             float damage = config.GetCutDamage(stroke.State);
+
+            OilStrokeFixativeStatus fixativeStatus =
+                stroke.GetComponent<
+                    OilStrokeFixativeStatus>();
+
+            if (fixativeStatus != null)
+            {
+                damage *=
+                    fixativeStatus.CutDamageMultiplier;
+            }
+
             currentIntegrity = Mathf.Max(0f, currentIntegrity - damage);
         }
 
