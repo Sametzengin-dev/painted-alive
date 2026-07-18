@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87b1d47af88d045428eb607d3f16abf9, type: 3}
+  m_Name: OilStrokeFragmentInteractionConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.OilStrokeFragmentInteractionConfig
+  minimumRelativeSpeed: 1.4
+  maximumMassInfluence: 2
+  pushVelocityPerSpeed: 0.38
+  maximumPushVelocity: 3.2
+  upwardVelocityFraction: 0.15
+  maximumUpwardVelocity: 1.2
+  contactCooldown: 0.35
+  counterImpulseScale: 0.3

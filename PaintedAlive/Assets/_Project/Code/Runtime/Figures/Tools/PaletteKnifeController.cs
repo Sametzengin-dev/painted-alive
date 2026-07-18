@@ -21,6 +21,9 @@ namespace PaintedAlive.Figures.Tools
         [SerializeField]
         private FigureClarityState clarityState;
 
+        [SerializeField]
+        private PaletteKnifeImpactFeedback impactFeedback;
+
         [Header("Aim Detection")]
         [SerializeField]
         private LayerMask oilPaintMask;
@@ -54,6 +57,13 @@ namespace PaintedAlive.Figures.Tools
                 clarityState =
                     GetComponentInParent<
                         FigureClarityState>();
+            }
+
+            if (impactFeedback == null)
+            {
+                impactFeedback =
+                    GetComponentInParent<
+                        PaletteKnifeImpactFeedback>();
             }
         }
 
@@ -99,6 +109,10 @@ namespace PaintedAlive.Figures.Tools
                     "Clarity seviyesi ana alet " +
                     "kullanımına izin vermiyor.");
 
+                impactFeedback?.PlayBlocked(
+                    toolOrigin.position,
+                    toolOrigin.forward);
+
                 return;
             }
 
@@ -139,6 +153,8 @@ namespace PaintedAlive.Figures.Tools
                     "Kamera merkezinde OilPaint " +
                     "katmanında boya bulunamadı.");
 
+                impactFeedback?.PlayMiss();
+
                 return;
             }
 
@@ -162,6 +178,10 @@ namespace PaintedAlive.Figures.Tools
                     $"Mesafe: {distanceFromTool:F2} m / " +
                     $"Menzil: {reach:F2} m");
 
+                impactFeedback?.PlayOutOfRange(
+                    hit.point,
+                    hit.normal);
+
                 return;
             }
 
@@ -175,6 +195,10 @@ namespace PaintedAlive.Figures.Tools
                 Log(
                     "Collider üzerinde " +
                     "OilStrokeRuntime bulunamadı.");
+
+                impactFeedback?.PlayBlocked(
+                    hit.point,
+                    hit.normal);
 
                 return;
             }
@@ -191,6 +215,13 @@ namespace PaintedAlive.Figures.Tools
                 stroke.TryCutWorldPoint(
                     hit.point,
                     effectiveGapWidth);
+
+            impactFeedback?.PlayCutResult(
+                hit.point,
+                hit.normal,
+                stroke,
+                cutSucceeded,
+                effectiveGapWidth);
 
             Log(
                 cutSucceeded

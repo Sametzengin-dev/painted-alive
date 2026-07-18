@@ -18,10 +18,24 @@ namespace PaintedAlive.Figures
         [SerializeField]
         private FigureClarityState clarityState;
 
+        [Header("External Motion Safety")]
+        [SerializeField, Min(0.01f)]
+        private float externalVelocityDamping = 7f;
+
+        [SerializeField, Min(0f)]
+        private float maximumExternalHorizontalSpeed = 4.5f;
+
+        [SerializeField, Min(0f)]
+        private float maximumExternalUpwardSpeed = 2.4f;
+
+        [SerializeField, Min(0f)]
+        private float maximumExternalDownwardSpeed = 1.5f;
+
         private CharacterController characterController;
         private FigureInputReader inputReader;
 
         private Vector3 horizontalVelocity;
+        private Vector3 externalVelocity;
         private float verticalVelocity;
         private float rotationVelocity;
         private float coyoteTimeRemaining;
@@ -36,7 +50,8 @@ namespace PaintedAlive.Figures
 
         public Vector3 Velocity =>
             horizontalVelocity +
-            Vector3.up * verticalVelocity;
+            Vector3.up * verticalVelocity +
+            externalVelocity;
 
         public bool IsGrounded =>
             characterController != null &&
@@ -87,6 +102,7 @@ namespace PaintedAlive.Figures
             UpdateJumpBuffer(deltaTime);
             UpdateHorizontalVelocity(deltaTime);
             UpdateVerticalVelocity(deltaTime);
+            UpdateExternalVelocity(deltaTime);
             MoveCharacter(deltaTime);
             RotateCharacter(deltaTime);
         }
@@ -119,6 +135,7 @@ namespace PaintedAlive.Figures
         public void ResetMotion()
         {
             horizontalVelocity = Vector3.zero;
+            externalVelocity = Vector3.zero;
             verticalVelocity = 0f;
             rotationVelocity = 0f;
             coyoteTimeRemaining = 0f;
@@ -127,6 +144,56 @@ namespace PaintedAlive.Figures
             currentPaintSurface = null;
             currentPaintSurfaceNormal = Vector3.up;
             paintSurfaceContactRemaining = 0f;
+        }
+
+        public void AddExternalImpulse(
+            Vector3 velocityChange)
+        {
+            if (!isActiveAndEnabled)
+            {
+                return;
+            }
+
+            Vector3 candidateVelocity =
+                externalVelocity + velocityChange;
+
+            Vector3 horizontalCandidate =
+                Vector3.ProjectOnPlane(
+                    candidateVelocity,
+                    Vector3.up);
+
+            horizontalCandidate =
+                Vector3.ClampMagnitude(
+                    horizontalCandidate,
+                    maximumExternalHorizontalSpeed);
+
+            float verticalCandidate =
+                Mathf.Clamp(
+                    candidateVelocity.y,
+                    -maximumExternalDownwardSpeed,
+                    maximumExternalUpwardSpeed);
+
+            externalVelocity =
+                horizontalCandidate +
+                Vector3.up * verticalCandidate;
+        }
+
+        private void UpdateExternalVelocity(
+            float deltaTime)
+        {
+            if (externalVelocity.sqrMagnitude <
+                0.0001f)
+            {
+                externalVelocity = Vector3.zero;
+                return;
+            }
+
+            float decay =
+                Mathf.Exp(
+                    -externalVelocityDamping *
+                    deltaTime);
+
+            externalVelocity *= decay;
         }
 
         private void UpdateGroundTimers(
@@ -307,7 +374,8 @@ namespace PaintedAlive.Figures
             Vector3 motion =
                 (
                     horizontalVelocity +
-                    Vector3.up * verticalVelocity
+                    Vector3.up * verticalVelocity +
+                    externalVelocity
                 ) * deltaTime;
 
             CollisionFlags collisionFlags =
@@ -318,6 +386,11 @@ namespace PaintedAlive.Figures
                 verticalVelocity > 0f)
             {
                 verticalVelocity = 0f;
+
+                if (externalVelocity.y > 0f)
+                {
+                    externalVelocity.y = 0f;
+                }
             }
 
             if ((collisionFlags &
@@ -326,6 +399,11 @@ namespace PaintedAlive.Figures
             {
                 verticalVelocity =
                     config.GroundedForce;
+
+                if (externalVelocity.y < 0f)
+                {
+                    externalVelocity.y = 0f;
+                }
             }
         }
 
@@ -450,6 +528,29 @@ namespace PaintedAlive.Figures
 
                     break;
             }
+        }
+
+        private void OnValidate()
+        {
+            externalVelocityDamping =
+                Mathf.Max(
+                    0.01f,
+                    externalVelocityDamping);
+
+            maximumExternalHorizontalSpeed =
+                Mathf.Max(
+                    0f,
+                    maximumExternalHorizontalSpeed);
+
+            maximumExternalUpwardSpeed =
+                Mathf.Max(
+                    0f,
+                    maximumExternalUpwardSpeed);
+
+            maximumExternalDownwardSpeed =
+                Mathf.Max(
+                    0f,
+                    maximumExternalDownwardSpeed);
         }
     }
 }
