@@ -7,19 +7,31 @@ namespace PaintedAlive.Figures
     public sealed class SpongeRescueController : MonoBehaviour
     {
         [Header("Input")]
-        [SerializeField] private InputActionProperty useSpongeAction;
+        [SerializeField]
+        private InputActionProperty useSpongeAction;
 
         [Header("Detection")]
-        [SerializeField] private Transform rescueOrigin;
-        [SerializeField, Min(0.5f)] private float rescueRange = 2.25f;
-        [SerializeField] private LayerMask figureLayerMask;
+        [SerializeField]
+        private Transform rescueOrigin;
+
+        [SerializeField, Min(0.5f)]
+        private float rescueRange = 2.25f;
+
+        [SerializeField]
+        private LayerMask figureLayerMask;
 
         [Header("Rescue")]
-        [SerializeField, Min(0.1f)] private float rescueDuration = 2f;
-        [SerializeField, Min(1f)] private float restoredClarity = 40f;
-        [SerializeField, Min(1)] private int pigmentCost = 1;
+        [SerializeField, Min(0.1f)]
+        private float rescueDuration = 2f;
 
-        private readonly Collider[] overlapResults = new Collider[12];
+        [SerializeField, Min(1f)]
+        private float restoredClarity = 40f;
+
+        [SerializeField, Min(1)]
+        private int pigmentCost = 1;
+
+        private readonly Collider[] overlapResults =
+            new Collider[12];
 
         private FigureCleanPigmentInventory inventory;
         private FigureClarityState ownClarity;
@@ -28,27 +40,44 @@ namespace PaintedAlive.Figures
         private bool waitingForRelease;
         private bool enabledInputHere;
 
-        public FigureClarityState CurrentTarget { get; private set; }
+        public FigureClarityState CurrentTarget
+        {
+            get;
+            private set;
+        }
 
         public float NormalizedProgress =>
             rescueDuration > 0f
-                ? Mathf.Clamp01(rescueProgress / rescueDuration)
+                ? Mathf.Clamp01(
+                    rescueProgress /
+                    rescueDuration)
                 : 0f;
+
+        public bool CanUseSponge =>
+            ownClarity == null ||
+            ownClarity.CanUsePrimaryTool;
 
         private void Awake()
         {
-            inventory = GetComponent<FigureCleanPigmentInventory>();
-            ownClarity = GetComponent<FigureClarityState>();
+            inventory =
+                GetComponent<FigureCleanPigmentInventory>();
+
+            ownClarity =
+                GetComponent<FigureClarityState>();
 
             if (rescueOrigin == null)
+            {
                 rescueOrigin = transform;
+            }
         }
 
         private void OnEnable()
         {
-            InputAction action = useSpongeAction.action;
+            InputAction action =
+                useSpongeAction.action;
 
-            if (action != null && !action.enabled)
+            if (action != null &&
+                !action.enabled)
             {
                 action.Enable();
                 enabledInputHere = true;
@@ -57,8 +86,11 @@ namespace PaintedAlive.Figures
 
         private void OnDisable()
         {
-            if (enabledInputHere && useSpongeAction.action != null)
+            if (enabledInputHere &&
+                useSpongeAction.action != null)
+            {
                 useSpongeAction.action.Disable();
+            }
 
             enabledInputHere = false;
             CurrentTarget = null;
@@ -68,10 +100,22 @@ namespace PaintedAlive.Figures
 
         private void Update()
         {
+            if (!CanUseSponge)
+            {
+                CurrentTarget = null;
+                rescueProgress = 0f;
+                waitingForRelease = false;
+                return;
+            }
+
             UpdateTarget();
 
-            InputAction action = useSpongeAction.action;
-            bool isHeld = action != null && action.IsPressed();
+            InputAction action =
+                useSpongeAction.action;
+
+            bool isHeld =
+                action != null &&
+                action.IsPressed();
 
             if (!isHeld)
             {
@@ -81,9 +125,12 @@ namespace PaintedAlive.Figures
             }
 
             if (waitingForRelease)
+            {
                 return;
+            }
 
-            if (CurrentTarget == null || !inventory.HasPigment)
+            if (CurrentTarget == null ||
+                !inventory.HasPigment)
             {
                 rescueProgress = 0f;
                 return;
@@ -92,46 +139,66 @@ namespace PaintedAlive.Figures
             rescueProgress += Time.deltaTime;
 
             if (rescueProgress < rescueDuration)
+            {
                 return;
+            }
 
             CompleteRescue();
         }
 
         private void UpdateTarget()
         {
-            FigureClarityState previousTarget = CurrentTarget;
-            CurrentTarget = FindNearestTarget();
+            FigureClarityState previousTarget =
+                CurrentTarget;
+
+            CurrentTarget =
+                FindNearestTarget();
 
             if (previousTarget != CurrentTarget)
+            {
                 rescueProgress = 0f;
+            }
         }
 
         private FigureClarityState FindNearestTarget()
         {
-            Vector3 origin = rescueOrigin.position;
+            Vector3 origin =
+                rescueOrigin.position;
 
-            int hitCount = Physics.OverlapSphereNonAlloc(
-                origin,
-                rescueRange,
-                overlapResults,
-                figureLayerMask,
-                QueryTriggerInteraction.Collide);
+            int hitCount =
+                Physics.OverlapSphereNonAlloc(
+                    origin,
+                    rescueRange,
+                    overlapResults,
+                    figureLayerMask,
+                    QueryTriggerInteraction.Collide);
 
             FigureClarityState nearestTarget = null;
-            float nearestDistanceSquared = float.MaxValue;
 
-            for (int i = 0; i < hitCount; i++)
+            float nearestDistanceSquared =
+                float.MaxValue;
+
+            for (int i = 0;
+                 i < hitCount;
+                 i++)
             {
-                Collider hit = overlapResults[i];
+                Collider hit =
+                    overlapResults[i];
 
                 if (hit == null)
+                {
                     continue;
+                }
 
                 FigureClarityState candidate =
-                    hit.GetComponentInParent<FigureClarityState>();
+                    hit.GetComponentInParent<
+                        FigureClarityState>();
 
-                if (candidate == null || candidate == ownClarity)
+                if (candidate == null ||
+                    candidate == ownClarity)
+                {
                     continue;
+                }
 
                 if (candidate.CurrentClarity >=
                     candidate.MaximumClarity - 0.01f)
@@ -140,13 +207,22 @@ namespace PaintedAlive.Figures
                 }
 
                 float distanceSquared =
-                    (candidate.transform.position - origin).sqrMagnitude;
+                    (
+                        candidate.transform.position -
+                        origin
+                    ).sqrMagnitude;
 
-                if (distanceSquared >= nearestDistanceSquared)
+                if (distanceSquared >=
+                    nearestDistanceSquared)
+                {
                     continue;
+                }
 
-                nearestDistanceSquared = distanceSquared;
-                nearestTarget = candidate;
+                nearestDistanceSquared =
+                    distanceSquared;
+
+                nearestTarget =
+                    candidate;
             }
 
             return nearestTarget;
@@ -154,31 +230,50 @@ namespace PaintedAlive.Figures
 
         private void CompleteRescue()
         {
-            FigureClarityState target = CurrentTarget;
+            FigureClarityState target =
+                CurrentTarget;
 
             rescueProgress = 0f;
             waitingForRelease = true;
 
             if (target == null)
+            {
                 return;
+            }
 
             if (!inventory.TryConsume(pigmentCost))
+            {
                 return;
+            }
 
             bool restored =
-                target.RestoreClarity(restoredClarity);
+                target.RestoreClarity(
+                    restoredClarity);
 
             if (!restored)
-                inventory.AddPigment(pigmentCost);
+            {
+                inventory.AddPigment(
+                    pigmentCost);
+            }
         }
 
         private void OnDrawGizmosSelected()
         {
             Transform origin =
-                rescueOrigin != null ? rescueOrigin : transform;
+                rescueOrigin != null
+                    ? rescueOrigin
+                    : transform;
 
-            Gizmos.color = new Color(0.3f, 0.9f, 0.75f, 0.5f);
-            Gizmos.DrawWireSphere(origin.position, rescueRange);
+            Gizmos.color =
+                new Color(
+                    0.3f,
+                    0.9f,
+                    0.75f,
+                    0.5f);
+
+            Gizmos.DrawWireSphere(
+                origin.position,
+                rescueRange);
         }
     }
 }

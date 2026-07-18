@@ -5,14 +5,24 @@ namespace PaintedAlive.Figures
 {
     public sealed class SpongeRescueHUD : MonoBehaviour
     {
-        [SerializeField] private SpongeRescueController rescueController;
-        [SerializeField] private FigureCleanPigmentInventory inventory;
+        [SerializeField]
+        private SpongeRescueController rescueController;
+
+        [SerializeField]
+        private FigureCleanPigmentInventory inventory;
 
         [Header("UI")]
-        [SerializeField] private CanvasGroup canvasGroup;
-        [SerializeField] private Text pigmentText;
-        [SerializeField] private Text rescuePromptText;
-        [SerializeField] private Slider rescueProgressSlider;
+        [SerializeField]
+        private CanvasGroup canvasGroup;
+
+        [SerializeField]
+        private Text pigmentText;
+
+        [SerializeField]
+        private Text rescuePromptText;
+
+        [SerializeField]
+        private Slider rescueProgressSlider;
 
         private void OnEnable()
         {
@@ -32,8 +42,19 @@ namespace PaintedAlive.Figures
 
         private void Refresh()
         {
-            if (rescueController == null || inventory == null)
+            if (rescueController == null ||
+                inventory == null)
+            {
                 return;
+            }
+
+            if (!rescueController.CanUseSponge)
+            {
+                SetVisible(false);
+                return;
+            }
+
+            SetVisible(true);
 
             if (pigmentText != null)
             {
@@ -48,7 +69,8 @@ namespace PaintedAlive.Figures
             {
                 if (!hasTarget)
                 {
-                    rescuePromptText.text = "Q  SÜNGER";
+                    rescuePromptText.text =
+                        "Q  SÜNGER";
                 }
                 else if (!inventory.HasPigment)
                 {
@@ -64,7 +86,9 @@ namespace PaintedAlive.Figures
 
             if (rescueProgressSlider != null)
             {
-                rescueProgressSlider.gameObject.SetActive(hasTarget);
+                rescueProgressSlider.gameObject.SetActive(
+                    hasTarget);
+
                 rescueProgressSlider.value =
                     rescueController.NormalizedProgress;
             }
@@ -73,9 +97,13 @@ namespace PaintedAlive.Figures
         private void SetVisible(bool visible)
         {
             if (canvasGroup == null)
+            {
                 return;
+            }
 
-            canvasGroup.alpha = visible ? 1f : 0f;
+            canvasGroup.alpha =
+                visible ? 1f : 0f;
+
             canvasGroup.interactable = false;
             canvasGroup.blocksRaycasts = false;
         }
