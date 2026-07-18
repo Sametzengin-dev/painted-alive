@@ -1693,7 +1693,8 @@ Transform:
   m_LocalPosition: {x: 0.30600005, y: 2.11, z: -0.16000152}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1250460772}
   m_Father: {fileID: 1649890974}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &330585547
@@ -5183,6 +5184,9 @@ GameObject:
   - component: {fileID: 907953225}
   - component: {fileID: 907953226}
   - component: {fileID: 907953227}
+  - component: {fileID: 907953230}
+  - component: {fileID: 907953229}
+  - component: {fileID: 907953228}
   m_Layer: 7
   m_Name: Figure_Player
   m_TagString: Player
@@ -5551,6 +5555,68 @@ MonoBehaviour:
   enableGamepadRumble: 1
   lowFrequencyRumble: 0.18
   highFrequencyRumble: 0.42
+--- !u!114 &907953228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f9432d9c23f1504ca9c397bdd8532d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.FigureToolLoadoutController
+  paletteKnifeController: {fileID: 907953218}
+  fixativeSprayController: {fileID: 907953229}
+  paletteKnifeVisual: {fileID: 0}
+  fixativeSprayVisual: {fileID: 0}
+  selectPaletteKnifeAction: {fileID: 0}
+  selectFixativeSprayAction: {fileID: 0}
+  initialTool: 0
+  logToolChanges: 1
+--- !u!114 &907953229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bfc794b7cca3eb468ef6d4d1f71a79b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.FixativeSprayController
+  outputCamera: {fileID: 330585545}
+  toolOrigin: {fileID: 1250460772}
+  useToolAction: {fileID: -8477353026357040613, guid: 0e049032a0466584399a2b47d82f7219, type: 3}
+  clarityState: {fileID: 907953219}
+  config: {fileID: 11400000, guid: 168d30661de1c96418930c707658f613, type: 2}
+  feedback: {fileID: 907953230}
+  oilPaintMask:
+    serializedVersion: 2
+    m_Bits: 64
+  logStateChanges: 1
+--- !u!114 &907953230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5447d186f2719584cac92e50290b51d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.FixativeSprayFeedback
+  sprayParticlePrefab: {fileID: 2680094070807870023, guid: 7cb391c444677dd40a121feff414d798, type: 3}
+  impactParticlePrefab: {fileID: 4052085153624673790, guid: 393b3bd4d0e2c1440ba39edb0b88f60b, type: 3}
+  maximumInstancesPerPool: 4
+  audioSource: {fileID: 0}
+  applicationClips: []
+  rejectedClips: []
+  volume: 0.65
+  audioInterval: 0.22
 --- !u!1 &919058481
 GameObject:
   m_ObjectHideFlags: 0
@@ -6004,6 +6070,37 @@ CanvasGroup:
   m_Interactable: 0
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
+--- !u!1 &1250460771
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1250460772}
+  m_Layer: 0
+  m_Name: FixativeSprayOrigin
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1250460772
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1250460771}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.22, y: -0.18, z: 0.42}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 330585546}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1313848544
 GameObject:
   m_ObjectHideFlags: 0

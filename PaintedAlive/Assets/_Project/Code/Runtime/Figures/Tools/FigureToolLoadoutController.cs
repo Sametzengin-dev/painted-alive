@@ -7,7 +7,8 @@ namespace PaintedAlive.Figures.Tools
     public enum FigureToolId
     {
         PaletteKnife,
-        FixativeSpray
+        FixativeSpray,
+        FrameGun
     }
 
     [DefaultExecutionOrder(-200)]
@@ -21,6 +22,9 @@ namespace PaintedAlive.Figures.Tools
         [SerializeField]
         private MonoBehaviour fixativeSprayController;
 
+        [SerializeField]
+        private MonoBehaviour frameGunController;
+
         [Header("Optional Tool Visuals")]
         [SerializeField]
         private GameObject paletteKnifeVisual;
@@ -28,12 +32,18 @@ namespace PaintedAlive.Figures.Tools
         [SerializeField]
         private GameObject fixativeSprayVisual;
 
+        [SerializeField]
+        private GameObject frameGunVisual;
+
         [Header("Optional Rebindable Actions")]
         [SerializeField]
         private InputActionReference selectPaletteKnifeAction;
 
         [SerializeField]
         private InputActionReference selectFixativeSprayAction;
+
+        [SerializeField]
+        private InputActionReference selectFrameGunAction;
 
         [Header("Initial State")]
         [SerializeField]
@@ -62,6 +72,7 @@ namespace PaintedAlive.Figures.Tools
         {
             EnableAction(selectPaletteKnifeAction);
             EnableAction(selectFixativeSprayAction);
+            EnableAction(selectFrameGunAction);
 
             if (initialized)
             {
@@ -73,6 +84,7 @@ namespace PaintedAlive.Figures.Tools
         {
             DisableAction(selectPaletteKnifeAction);
             DisableAction(selectFixativeSprayAction);
+            DisableAction(selectFrameGunAction);
         }
 
         private void Update()
@@ -84,6 +96,10 @@ namespace PaintedAlive.Figures.Tools
             else if (WasFixativeSpraySelected())
             {
                 SelectTool(FigureToolId.FixativeSpray);
+            }
+            else if (WasFrameGunSelected())
+            {
+                SelectTool(FigureToolId.FrameGun);
             }
         }
 
@@ -109,6 +125,12 @@ namespace PaintedAlive.Figures.Tools
             bool usePaletteKnife =
                 activeTool == FigureToolId.PaletteKnife;
 
+            bool useFixativeSpray =
+                activeTool == FigureToolId.FixativeSpray;
+
+            bool useFrameGun =
+                activeTool == FigureToolId.FrameGun;
+
             if (paletteKnifeController != null)
             {
                 paletteKnifeController.enabled = false;
@@ -119,15 +141,25 @@ namespace PaintedAlive.Figures.Tools
                 fixativeSprayController.enabled = false;
             }
 
+            if (frameGunController != null)
+            {
+                frameGunController.enabled = false;
+            }
+
             if (usePaletteKnife &&
                 paletteKnifeController != null)
             {
                 paletteKnifeController.enabled = true;
             }
-            else if (!usePaletteKnife &&
+            else if (useFixativeSpray &&
                      fixativeSprayController != null)
             {
                 fixativeSprayController.enabled = true;
+            }
+            else if (useFrameGun &&
+                     frameGunController != null)
+            {
+                frameGunController.enabled = true;
             }
 
             if (paletteKnifeVisual != null)
@@ -137,7 +169,12 @@ namespace PaintedAlive.Figures.Tools
 
             if (fixativeSprayVisual != null)
             {
-                fixativeSprayVisual.SetActive(!usePaletteKnife);
+                fixativeSprayVisual.SetActive(useFixativeSpray);
+            }
+
+            if (frameGunVisual != null)
+            {
+                frameGunVisual.SetActive(useFrameGun);
             }
 
             if (logToolChanges &&
@@ -196,6 +233,28 @@ namespace PaintedAlive.Figures.Tools
             return keyboardPressed || gamepadPressed;
         }
 
+        private bool WasFrameGunSelected()
+        {
+            if (selectFrameGunAction != null &&
+                selectFrameGunAction.action != null)
+            {
+                return selectFrameGunAction.action
+                    .WasPressedThisFrame();
+            }
+
+            bool keyboardPressed =
+                Keyboard.current != null &&
+                Keyboard.current.digit3Key
+                    .wasPressedThisFrame;
+
+            bool gamepadPressed =
+                Gamepad.current != null &&
+                Gamepad.current.dpad.up
+                    .wasPressedThisFrame;
+
+            return keyboardPressed || gamepadPressed;
+        }
+
         private static void EnableAction(
             InputActionReference actionReference)
         {
@@ -217,6 +276,9 @@ namespace PaintedAlive.Figures.Tools
 
                 FigureToolId.FixativeSpray =>
                     "Sabitleyici Sprey",
+
+                FigureToolId.FrameGun =>
+                    "Çerçeve Tabancası",
 
                 _ => tool.ToString()
             };

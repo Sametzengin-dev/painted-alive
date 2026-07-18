@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 106cbedbe9526a04c81261f3f160713b, type: 3}
+  m_Name: FrameGunConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.FrameGunConfig
+  maximumAimDistance: 24
+  castRadius: 0.08
+  minimumAnchorDistance: 1.25
+  minimumRopeLength: 1.5
+  maximumRopeLength: 24
+  initialLengthMultiplier: 1.02
+  slackTolerance: 0.12
+  springAcceleration: 20
+  radialDamping: 5.5
+  maximumPullAcceleration: 32
+  maximumStretchBeforeBreak: 5
+  dynamicBodyReactionForceScale: 0.25
+  ropeSegments: 18
+  ropeWidth: 0.035
+  maximumVisualSag: 1.2
