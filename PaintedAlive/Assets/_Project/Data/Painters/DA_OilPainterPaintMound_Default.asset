@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7c57c7c0e7ee3149b1fdd15dc9bea80, type: 3}
+  m_Name: DA_OilPainterPaintMound_Default
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Painters.PainterPaintMoundConfig
+  minimumHoldDuration: 0.55
+  maximumChargeDuration: 2
+  minimumRadius: 0.75
+  maximumRadius: 1.8
+  minimumHeight: 0.45
+  maximumHeight: 1.35
+  minimumPigmentCost: 12
+  maximumPigmentCost: 30
+  growthDuration: 0.75
+  wetDuration: 5
+  dryingDuration: 4
+  placementCooldown: 2.25
+  maximumActiveMounds: 3
+  maximumTotalMounds: 8
+  surfaceOffset: 0.025
+  radialSegments: 16
+  verticalRings: 6
