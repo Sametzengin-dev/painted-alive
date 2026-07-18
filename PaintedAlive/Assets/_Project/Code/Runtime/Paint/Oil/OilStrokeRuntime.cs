@@ -44,10 +44,16 @@ namespace PaintedAlive.Paint
         private bool finalized;
         private float lifecycleElapsed;
 
+
+        private OilStrokePressureProfile pressureProfile =
+            OilStrokePressureProfile.Balanced;
         public bool HasRenderableGeometry => controlPoints.Count >= 2;
         public OilStrokeState State { get; private set; }
         public bool IsFinalized => finalized;
         public OilStrokeShape Shape { get; private set; }
+
+        public OilStrokePressureProfile PressureProfile =>
+            pressureProfile;
 
         public float OriginalLength =>
             splineContainer != null && HasRenderableGeometry
@@ -65,11 +71,31 @@ namespace PaintedAlive.Paint
             Material finalDryMaterial,
             OilStrokeShape strokeShape)
         {
+            Initialize(
+                strokeConfig,
+                initialWetMaterial,
+                finalDryMaterial,
+                strokeShape,
+                OilStrokePressureProfile.Balanced);
+        }
+
+        public void Initialize(
+            OilStrokeConfig strokeConfig,
+            Material initialWetMaterial,
+            Material finalDryMaterial,
+            OilStrokeShape strokeShape,
+            OilStrokePressureProfile strokePressureProfile)
+        {
             config = strokeConfig;
             wetMaterial = initialWetMaterial;
             dryMaterial = finalDryMaterial;
             Shape = strokeShape;
 
+
+            pressureProfile =
+                strokePressureProfile.IsValid
+                    ? strokePressureProfile
+                    : OilStrokePressureProfile.Balanced;
             splineContainer = GetComponent<SplineContainer>();
             meshFilter = GetComponent<MeshFilter>();
             meshRenderer = GetComponent<MeshRenderer>();
@@ -111,10 +137,21 @@ namespace PaintedAlive.Paint
 
             lifecycleElapsed += Time.deltaTime;
 
-            float wetEnd = config.WetDuration;
+            float lifecycleMultiplier =
+                Mathf.Max(
+                    0.1f,
+                    pressureProfile.LifecycleDurationMultiplier);
+
+            float wetEnd =
+                config.WetDuration *
+                lifecycleMultiplier;
+
+            float dryingDuration =
+                config.DryingDuration *
+                lifecycleMultiplier;
 
             float dryEnd =
-                wetEnd + config.DryingDuration;
+                wetEnd + dryingDuration;
 
             if (lifecycleElapsed < wetEnd)
             {
@@ -123,7 +160,7 @@ namespace PaintedAlive.Paint
                 return;
             }
 
-            if (config.DryingDuration > 0f &&
+            if (dryingDuration > 0f &&
                 lifecycleElapsed < dryEnd)
             {
                 State = OilStrokeState.Drying;
@@ -289,7 +326,7 @@ namespace PaintedAlive.Paint
 
         private float GetCutMultiplier()
         {
-            return State switch
+            float stateMultiplier = State switch
             {
                 OilStrokeState.Wet =>
                     config.WetCutMultiplier,
@@ -302,6 +339,13 @@ namespace PaintedAlive.Paint
 
                 _ => 1f
             };
+
+            float resistance =
+                Mathf.Max(
+                    0.1f,
+                    pressureProfile.CutResistanceMultiplier);
+
+            return stateMultiplier / resistance;
         }
 
         private void AddAndMergeCutInterval(
@@ -389,7 +433,9 @@ namespace PaintedAlive.Paint
                     sampleCount * 4);
 
             float halfWidth =
-                config.GetWidth(Shape) * 0.5f;
+                config.GetWidth(Shape) *
+                pressureProfile.WidthMultiplier *
+                0.5f;
 
             for (int i = 0;
                  i < sampleCount;
@@ -457,7 +503,8 @@ namespace PaintedAlive.Paint
                 float sampleHeight =
                     config.GetHeight(
                         Shape,
-                        t);
+                        t) *
+                    pressureProfile.HeightMultiplier;
 
                 Vector3 topLeft =
                     bottomLeft +

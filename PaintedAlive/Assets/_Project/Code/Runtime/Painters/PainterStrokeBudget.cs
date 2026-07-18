@@ -77,9 +77,21 @@ namespace PaintedAlive.Painters
                         stroke.IsFinalized &&
                         stroke.State == OilStrokeState.Dry;
 
-                    pressure += isDry
-                        ? config.DryStrokePressure
-                        : config.GetActivePressure(stroke.Shape);
+                    if (isDry)
+                    {
+                        pressure += config.DryStrokePressure;
+                    }
+                    else
+                    {
+                        float profileMultiplier =
+                            stroke.PressureProfile.IsValid
+                                ? stroke.PressureProfile.BudgetMultiplier
+                                : 1f;
+
+                        pressure +=
+                            config.GetActivePressure(stroke.Shape) *
+                            profileMultiplier;
+                    }
                 }
 
                 return pressure;
@@ -119,6 +131,17 @@ namespace PaintedAlive.Painters
             OilStrokeShape shape,
             out PainterStrokeBlockReason reason)
         {
+            return CanBeginStroke(
+                shape,
+                OilStrokePressureProfile.Balanced,
+                out reason);
+        }
+
+        public bool CanBeginStroke(
+            OilStrokeShape shape,
+            OilStrokePressureProfile pressureProfile,
+            out PainterStrokeBlockReason reason)
+        {
             reason = PainterStrokeBlockReason.None;
 
             if (config == null || strokeSystem == null)
@@ -149,9 +172,15 @@ namespace PaintedAlive.Painters
                 return false;
             }
 
+            float profileMultiplier =
+                pressureProfile.IsValid
+                    ? pressureProfile.BudgetMultiplier
+                    : 1f;
+
             float projectedPressure =
                 CurrentPressure +
-                config.GetActivePressure(shape);
+                config.GetActivePressure(shape) *
+                profileMultiplier;
 
             if (projectedPressure >
                 config.MaximumPressure + 0.001f)

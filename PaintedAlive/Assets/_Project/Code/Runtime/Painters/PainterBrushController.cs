@@ -22,6 +22,9 @@ namespace PaintedAlive.Painters
         [SerializeField] private OilStrokeSystem strokeSystem;
         [SerializeField] private PainterPigmentReservoir pigmentReservoir;
         [SerializeField] private PainterStrokeBudget strokeBudget;
+
+        [SerializeField]
+        private PainterStrokePressureTracker pressureTracker;
         [SerializeField] private PainterStrokeModeSelector strokeModeSelector;
 
         [Header("Visuals")]
@@ -98,6 +101,15 @@ namespace PaintedAlive.Painters
             IsPreviewing &&
             previewPoints.Count >= 2 &&
             TelegraphNormalized >= 1f;
+
+        public OilStrokePressureProfile CurrentPressureProfile =>
+
+            pressureTracker != null
+
+                ? pressureTracker.CurrentProfile
+
+                : OilStrokePressureProfile.Balanced;
+
 
         private void Awake()
         {
@@ -234,6 +246,11 @@ namespace PaintedAlive.Painters
             previewPoints.Clear();
             previewPoints.Add(startPoint);
 
+            if (pressureTracker != null)
+            {
+                pressureTracker.BeginTracking(startPoint);
+            }
+
             pigmentReservoir.SetConsuming(true);
 
             EstimatedPigmentCost =
@@ -242,18 +259,9 @@ namespace PaintedAlive.Painters
             if (strokePreview == null)
                 return;
 
-            float previewWidth =
-                strokeSystem.GetPreviewWidth(shape);
-
             strokePreview.useWorldSpace = true;
 
-            strokePreview.startWidth = Mathf.Clamp(
-                previewWidth * 0.65f,
-                0.18f,
-                1.2f);
-
-            strokePreview.endWidth =
-                strokePreview.startWidth;
+            RefreshPreviewWidth();
 
             strokePreview.enabled = true;
             strokePreview.positionCount = 1;
@@ -308,6 +316,13 @@ namespace PaintedAlive.Painters
 
             previewPoints.Add(point);
 
+            if (pressureTracker != null)
+            {
+                pressureTracker.RecordPoint(point);
+            }
+
+            RefreshPreviewWidth();
+
             if (strokePreview == null)
                 return;
 
@@ -317,6 +332,29 @@ namespace PaintedAlive.Painters
             strokePreview.SetPosition(
                 previewPoints.Count - 1,
                 point);
+        }
+
+        private void RefreshPreviewWidth()
+        {
+            if (strokePreview == null ||
+                strokeSystem == null)
+            {
+                return;
+            }
+
+            float previewWidth =
+                strokeSystem.GetPreviewWidth(
+                    activeShape,
+                    CurrentPressureProfile);
+
+            strokePreview.startWidth =
+                Mathf.Clamp(
+                    previewWidth * 0.65f,
+                    0.12f,
+                    1.5f);
+
+            strokePreview.endWidth =
+                strokePreview.startWidth;
         }
 
         private void FinishPreview()
@@ -331,6 +369,7 @@ namespace PaintedAlive.Painters
             if (strokeBudget != null &&
                 !strokeBudget.CanBeginStroke(
                     activeShape,
+                    CurrentPressureProfile,
                     out _))
             {
                 CancelPreview();
@@ -354,7 +393,8 @@ namespace PaintedAlive.Painters
 
             if (!strokeSystem.BeginStroke(
                     previewPoints[0],
-                    activeShape))
+                    activeShape,
+                    CurrentPressureProfile))
             {
                 CancelPreview();
                 return;
@@ -425,7 +465,14 @@ namespace PaintedAlive.Painters
                     shapeMultiplier;
             }
 
-            return Mathf.Max(0f, cost);
+            float pressurePigmentMultiplier =
+                CurrentPressureProfile.IsValid
+                    ? CurrentPressureProfile.PigmentMultiplier
+                    : 1f;
+
+            return Mathf.Max(
+                0f,
+                cost * pressurePigmentMultiplier);
         }
 
         private void UpdatePreviewAppearance()
@@ -503,6 +550,11 @@ namespace PaintedAlive.Painters
         private void ClearPreview()
         {
             previewPoints.Clear();
+
+            if (pressureTracker != null)
+            {
+                pressureTracker.ResetTracking();
+            }
             telegraphElapsed = 0f;
             EstimatedPigmentCost = 0f;
 

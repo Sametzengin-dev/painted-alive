@@ -48,6 +48,21 @@ namespace PaintedAlive.Paint
                 : 0.5f;
         }
 
+        public float GetPreviewWidth(
+            OilStrokeShape shape,
+            OilStrokePressureProfile pressureProfile)
+        {
+            float baseWidth =
+                GetPreviewWidth(shape);
+
+            float multiplier =
+                pressureProfile.IsValid
+                    ? pressureProfile.WidthMultiplier
+                    : 1f;
+
+            return baseWidth * multiplier;
+        }
+
         public float GetPigmentMultiplier(
             OilStrokeShape shape)
         {
@@ -59,6 +74,17 @@ namespace PaintedAlive.Paint
         public bool BeginStroke(
             Vector3 worldPoint,
             OilStrokeShape shape)
+        {
+            return BeginStroke(
+                worldPoint,
+                shape,
+                OilStrokePressureProfile.Balanced);
+        }
+
+        public bool BeginStroke(
+            Vector3 worldPoint,
+            OilStrokeShape shape,
+            OilStrokePressureProfile pressureProfile)
         {
             EndStroke();
 
@@ -112,7 +138,8 @@ namespace PaintedAlive.Paint
                 config,
                 wetMaterial,
                 dryMaterial,
-                shape);
+                shape,
+                pressureProfile);
 
             bool pointAccepted =
                 activeStroke
