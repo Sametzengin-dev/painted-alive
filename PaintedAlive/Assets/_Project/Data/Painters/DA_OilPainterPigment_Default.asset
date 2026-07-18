@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: DA_OilPainterPigment_Default
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Painters.PainterPigmentConfig
   capacity: 100
-  regenerationPerSecond: 8
+  regenerationPerSecond: 6
   strokeBeginCost: 3
   costPerMeter: 3.5

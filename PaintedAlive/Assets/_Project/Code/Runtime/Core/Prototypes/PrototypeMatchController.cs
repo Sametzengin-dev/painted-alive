@@ -49,6 +49,9 @@ namespace PaintedAlive.Core.Prototypes
         [SerializeField]
         private PainterPigmentReservoir pigmentReservoir;
 
+        [SerializeField]
+        private PainterStrokeBudget painterStrokeBudget;
+
         [Header("World Reset")]
         [SerializeField]
         private CleanPigmentPickup[] cleanPigmentPickups;
@@ -113,6 +116,12 @@ namespace PaintedAlive.Core.Prototypes
 
             strokeSystem?.ClearAllStrokes();
             pigmentReservoir?.Refill();
+
+            if (painterStrokeBudget != null)
+            {
+                painterStrokeBudget.ResetBudget();
+            }
+
             progressTracker?.ResetProgress();
 
             if (figureMotor != null &&
