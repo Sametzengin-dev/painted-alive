@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbac0a4f07ffae9479b56dbc31e9f604, type: 3}
+  m_Name: WatercolorFlowConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Watercolor.WatercolorFlowConfig
+  maximumFlowLength: 9
+  nodeSpacing: 0.45
+  growthSpeed: 1.5
+  surfaceWidth: 2.2
+  slopeSteering: 0.82
+  maximumNodeCount: 28
+  probeHeight: 1.4
+  probeDistance: 3.2
+  surfaceOffset: 0.025
+  initialAmount: 100
+  absorptionInstability: 0.08
+  figureFlowAcceleration: 7.5
+  rigidbodyFlowAcceleration: 11
+  clarityExposurePerSecond: 1.8
+  contactHeightTolerance: 0.85
