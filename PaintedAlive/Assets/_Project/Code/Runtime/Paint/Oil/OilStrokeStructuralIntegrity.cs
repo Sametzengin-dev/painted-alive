@@ -80,21 +80,59 @@ namespace PaintedAlive.Paint
             }
         }
 
+        public bool ApplyExternalDamage(
+            float damage,
+            bool requireExistingCuts)
+        {
+            if (!initialized ||
+                fractured ||
+                stroke == null ||
+                config == null)
+            {
+                return fractured;
+            }
+
+            float safeDamage = Mathf.Max(0f, damage);
+
+            if (safeDamage <= 0f || currentIntegrity <= 0f)
+            {
+                return fractured;
+            }
+
+            bool crossedDepletionThreshold =
+                currentIntegrity > 0f &&
+                currentIntegrity - safeDamage <= 0f;
+
+            currentIntegrity =
+                Mathf.Max(0f, currentIntegrity - safeDamage);
+
+            bool cutsPermitFracture =
+                !requireExistingCuts ||
+                observedCutCount >=
+                config.MinimumCutsBeforeFracture;
+
+            if (crossedDepletionThreshold && cutsPermitFracture)
+            {
+                TryFracture();
+            }
+
+            return fractured;
+        }
+
         private void ApplyCutDamage()
         {
             float damage = config.GetCutDamage(stroke.State);
 
             OilStrokeFixativeStatus fixativeStatus =
-                stroke.GetComponent<
-                    OilStrokeFixativeStatus>();
+                stroke.GetComponent<OilStrokeFixativeStatus>();
 
             if (fixativeStatus != null)
             {
-                damage *=
-                    fixativeStatus.CutDamageMultiplier;
+                damage *= fixativeStatus.CutDamageMultiplier;
             }
 
-            currentIntegrity = Mathf.Max(0f, currentIntegrity - damage);
+            currentIntegrity =
+                Mathf.Max(0f, currentIntegrity - damage);
         }
 
         private void TryFracture()
@@ -103,7 +141,8 @@ namespace PaintedAlive.Paint
             MeshRenderer sourceRenderer = GetComponent<MeshRenderer>();
             MeshCollider sourceCollider = GetComponent<MeshCollider>();
 
-            if (sourceFilter == null || sourceFilter.sharedMesh == null)
+            if (sourceFilter == null ||
+                sourceFilter.sharedMesh == null)
                 return;
 
             Mesh sourceMesh = sourceFilter.sharedMesh;
@@ -218,8 +257,7 @@ namespace PaintedAlive.Paint
 
             if (outward.sqrMagnitude < 0.001f)
             {
-                float angle =
-                    index * 2.39996323f;
+                float angle = index * 2.39996323f;
 
                 outward =
                     transform.TransformDirection(
@@ -246,11 +284,13 @@ namespace PaintedAlive.Paint
                 config.AngularImpulse;
 
             var fragment =
-                fragmentObject.AddComponent<OilStrokeFragmentRuntime>();
+                fragmentObject.AddComponent<
+                    OilStrokeFragmentRuntime>();
 
-            float mass = config.CalculateFragmentMass(
-                fragmentMesh.bounds,
-                transform.lossyScale);
+            float mass =
+                config.CalculateFragmentMass(
+                    fragmentMesh.bounds,
+                    transform.lossyScale);
 
             fragment.Initialize(
                 fragmentMesh,
@@ -282,14 +322,17 @@ namespace PaintedAlive.Paint
                 SafeDivide(worldScale.z, parentScale.z));
         }
 
-        private static float SafeDivide(float value, float divisor)
+        private static float SafeDivide(
+            float value,
+            float divisor)
         {
             return Mathf.Abs(divisor) > 0.0001f
                 ? value / divisor
                 : value;
         }
 
-        private static void DestroyGeneratedFragments(List<Mesh> meshes)
+        private static void DestroyGeneratedFragments(
+            List<Mesh> meshes)
         {
             foreach (Mesh mesh in meshes)
                 DestroyMesh(mesh);

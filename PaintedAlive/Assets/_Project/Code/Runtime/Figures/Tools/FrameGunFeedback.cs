@@ -32,23 +32,26 @@ namespace PaintedAlive.Figures.Tools
         [SerializeField]
         private AudioClip[] rejectedClips;
 
+        [SerializeField]
+        private AudioClip[] slidingClips;
+
         [SerializeField, Range(0f, 1f)]
         private float volume = 0.75f;
 
+        [SerializeField, Min(0.05f)]
+        private float slidingFeedbackInterval = 0.14f;
+
         private readonly List<ParticleSystem> particlePool = new();
         private int particleCursor;
+        private float nextSlidingFeedbackTime;
 
         private void Awake()
         {
             if (audioSource == null)
             {
-                var audioObject =
-                    new GameObject("FrameGunAudio");
-
+                var audioObject = new GameObject("FrameGunAudio");
                 audioObject.transform.SetParent(transform, false);
-
-                audioSource =
-                    audioObject.AddComponent<AudioSource>();
+                audioSource = audioObject.AddComponent<AudioSource>();
             }
 
             audioSource.playOnAwake = false;
@@ -108,6 +111,33 @@ namespace PaintedAlive.Figures.Tools
                 Random.Range(0.98f, 1.03f));
         }
 
+        public void PlaySliding(
+            Vector3 position,
+            Vector3 surfaceNormal,
+            float normalizedTension)
+        {
+            if (Time.unscaledTime < nextSlidingFeedbackTime)
+            {
+                return;
+            }
+
+            nextSlidingFeedbackTime =
+                Time.unscaledTime + slidingFeedbackInterval;
+
+            float intensity =
+                Mathf.Lerp(
+                    0.5f,
+                    1.15f,
+                    Mathf.Clamp01(normalizedTension));
+
+            PlayParticle(position, surfaceNormal, intensity);
+            MoveAudioSource(position);
+            PlayRandomClip(
+                slidingClips,
+                0.42f,
+                Random.Range(0.92f, 1.08f));
+        }
+
         private void PlayParticle(
             Vector3 position,
             Vector3 normal,
@@ -135,14 +165,12 @@ namespace PaintedAlive.Figures.Tools
                 Quaternion.FromToRotation(
                     Vector3.forward,
                     safeNormal);
-
             particle.transform.localScale =
                 Vector3.one * Mathf.Max(0.01f, scale);
 
             particle.Stop(
                 true,
                 ParticleSystemStopBehavior.StopEmittingAndClear);
-
             particle.Play(true);
         }
 
@@ -150,8 +178,7 @@ namespace PaintedAlive.Figures.Tools
         {
             foreach (ParticleSystem candidate in particlePool)
             {
-                if (candidate != null &&
-                    !candidate.IsAlive(true))
+                if (candidate != null && !candidate.IsAlive(true))
                 {
                     return candidate;
                 }
@@ -178,12 +205,9 @@ namespace PaintedAlive.Figures.Tools
             }
 
             particleCursor %= particlePool.Count;
-            ParticleSystem reused =
-                particlePool[particleCursor];
-
+            ParticleSystem reused = particlePool[particleCursor];
             particleCursor =
                 (particleCursor + 1) % particlePool.Count;
-
             return reused;
         }
 
@@ -210,8 +234,7 @@ namespace PaintedAlive.Figures.Tools
             audioSource.pitch = pitch;
             audioSource.PlayOneShot(
                 clip,
-                Mathf.Clamp01(
-                    volume * volumeMultiplier));
+                Mathf.Clamp01(volume * volumeMultiplier));
         }
 
         private static AudioClip GetRandomClip(AudioClip[] clips)
@@ -243,8 +266,9 @@ namespace PaintedAlive.Figures.Tools
         {
             maximumParticleInstances =
                 Mathf.Clamp(maximumParticleInstances, 1, 12);
-
             volume = Mathf.Clamp01(volume);
+            slidingFeedbackInterval =
+                Mathf.Max(0.05f, slidingFeedbackInterval);
         }
     }
 }

@@ -24,6 +24,25 @@ MonoBehaviour:
   maximumPullAcceleration: 32
   maximumStretchBeforeBreak: 5
   dynamicBodyReactionForceScale: 0.25
+  wetOilGrip: 0.22
+  dryingOilGrip: 0.62
+  dryOilGrip: 1
+  fixedOilGrip: 1
+  slipStartTensionBias: 0.08
+  minimumSlipSpeed: 0.12
+  maximumSlipSpeed: 2.2
+  surfaceProbeDistance: 0.35
+  maximumContinuousSlipDistance: 5
+  minimumDamageTension: 0.55
+  tensionDamagePerSecond: 0.18
+  wetBrittleness: 0.08
+  dryingBrittleness: 0.45
+  maximumFixativeBrittlenessMultiplier: 2.25
   ropeSegments: 18
   ropeWidth: 0.035
   maximumVisualSag: 1.2
+  slackRopeColor: {r: 0.32, g: 0.13, b: 0.04, a: 1}
+  tensionRopeColor: {r: 1, g: 0.48, b: 0.06, a: 1}
+  criticalRopeColor: {r: 0.95, g: 0.06, b: 0.025, a: 1}
+  slidingRopeColor: {r: 1, g: 0.82, b: 0.08, a: 1}
+  surfaceAnchorVersion: 1
