@@ -31,6 +31,10 @@ namespace PaintedAlive.Figures
         [SerializeField, Min(0f)]
         private float maximumExternalDownwardSpeed = 1.5f;
 
+        [Header("Equipment Load - Runtime")]
+        [SerializeField, Range(0.1f, 1f)]
+        private float equipmentMovementMultiplier = 1f;
+
         private CharacterController characterController;
         private FigureInputReader inputReader;
 
@@ -56,6 +60,9 @@ namespace PaintedAlive.Figures
         public bool IsGrounded =>
             characterController != null &&
             characterController.isGrounded;
+
+        public float EquipmentMovementMultiplier =>
+            equipmentMovementMultiplier;
 
         private void Awake()
         {
@@ -178,6 +185,13 @@ namespace PaintedAlive.Figures
                 Vector3.up * verticalCandidate;
         }
 
+        public void SetEquipmentMovementMultiplier(
+            float multiplier)
+        {
+            equipmentMovementMultiplier =
+                Mathf.Clamp(multiplier, 0.1f, 1f);
+        }
+
         private void UpdateExternalVelocity(
             float deltaTime)
         {
@@ -280,6 +294,8 @@ namespace PaintedAlive.Figures
                 maximumSpeed *=
                     clarityState.MovementMultiplier;
             }
+
+            maximumSpeed *= equipmentMovementMultiplier;
 
             maximumSpeed *= speedMultiplier;
 
@@ -551,6 +567,12 @@ namespace PaintedAlive.Figures
                 Mathf.Max(
                     0f,
                     maximumExternalDownwardSpeed);
+
+            equipmentMovementMultiplier =
+                Mathf.Clamp(
+                    equipmentMovementMultiplier,
+                    0.1f,
+                    1f);
         }
     }
 }

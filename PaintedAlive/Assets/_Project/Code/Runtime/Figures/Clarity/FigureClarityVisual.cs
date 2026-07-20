@@ -156,6 +156,8 @@ namespace PaintedAlive.Figures
             if (normalRenderer == null || clarityState == null)
                 return;
 
+            propertyBlock ??= new MaterialPropertyBlock();
+
             float clarity = clarityState.NormalizedClarity;
             Color color = Color.Lerp(paintedColor, cleanColor, clarity);
 

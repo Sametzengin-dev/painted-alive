@@ -8,7 +8,8 @@ namespace PaintedAlive.Figures.Tools
     {
         PaletteKnife,
         FixativeSpray,
-        FrameGun
+        FrameGun,
+        Sponge
     }
 
     [DefaultExecutionOrder(-200)]
@@ -25,6 +26,9 @@ namespace PaintedAlive.Figures.Tools
         [SerializeField]
         private MonoBehaviour frameGunController;
 
+        [SerializeField]
+        private MonoBehaviour spongeController;
+
         [Header("Optional Tool Visuals")]
         [SerializeField]
         private GameObject paletteKnifeVisual;
@@ -35,6 +39,9 @@ namespace PaintedAlive.Figures.Tools
         [SerializeField]
         private GameObject frameGunVisual;
 
+        [SerializeField]
+        private GameObject spongeVisual;
+
         [Header("Optional Rebindable Actions")]
         [SerializeField]
         private InputActionReference selectPaletteKnifeAction;
@@ -44,6 +51,9 @@ namespace PaintedAlive.Figures.Tools
 
         [SerializeField]
         private InputActionReference selectFrameGunAction;
+
+        [SerializeField]
+        private InputActionReference selectSpongeAction;
 
         [Header("Initial State")]
         [SerializeField]
@@ -73,6 +83,7 @@ namespace PaintedAlive.Figures.Tools
             EnableAction(selectPaletteKnifeAction);
             EnableAction(selectFixativeSprayAction);
             EnableAction(selectFrameGunAction);
+            EnableAction(selectSpongeAction);
 
             if (initialized)
             {
@@ -85,6 +96,17 @@ namespace PaintedAlive.Figures.Tools
             DisableAction(selectPaletteKnifeAction);
             DisableAction(selectFixativeSprayAction);
             DisableAction(selectFrameGunAction);
+            DisableAction(selectSpongeAction);
+
+            SetControllerEnabled(paletteKnifeController, false);
+            SetControllerEnabled(fixativeSprayController, false);
+            SetControllerEnabled(frameGunController, false);
+            SetControllerEnabled(spongeController, false);
+
+            SetVisualActive(paletteKnifeVisual, false);
+            SetVisualActive(fixativeSprayVisual, false);
+            SetVisualActive(frameGunVisual, false);
+            SetVisualActive(spongeVisual, false);
         }
 
         private void Update()
@@ -100,6 +122,18 @@ namespace PaintedAlive.Figures.Tools
             else if (WasFrameGunSelected())
             {
                 SelectTool(FigureToolId.FrameGun);
+            }
+            else if (WasSpongeSelected())
+            {
+                SelectTool(FigureToolId.Sponge);
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (!SelectionStateMatches())
+            {
+                ApplySelection(false);
             }
         }
 
@@ -124,58 +158,39 @@ namespace PaintedAlive.Figures.Tools
         {
             bool usePaletteKnife =
                 activeTool == FigureToolId.PaletteKnife;
-
             bool useFixativeSpray =
                 activeTool == FigureToolId.FixativeSpray;
-
             bool useFrameGun =
                 activeTool == FigureToolId.FrameGun;
+            bool useSponge =
+                activeTool == FigureToolId.Sponge;
 
-            if (paletteKnifeController != null)
-            {
-                paletteKnifeController.enabled = false;
-            }
+            SetControllerEnabled(paletteKnifeController, false);
+            SetControllerEnabled(fixativeSprayController, false);
+            SetControllerEnabled(frameGunController, false);
+            SetControllerEnabled(spongeController, false);
 
-            if (fixativeSprayController != null)
+            if (usePaletteKnife)
             {
-                fixativeSprayController.enabled = false;
+                SetControllerEnabled(paletteKnifeController, true);
             }
-
-            if (frameGunController != null)
+            else if (useFixativeSpray)
             {
-                frameGunController.enabled = false;
+                SetControllerEnabled(fixativeSprayController, true);
             }
-
-            if (usePaletteKnife &&
-                paletteKnifeController != null)
+            else if (useFrameGun)
             {
-                paletteKnifeController.enabled = true;
+                SetControllerEnabled(frameGunController, true);
             }
-            else if (useFixativeSpray &&
-                     fixativeSprayController != null)
+            else if (useSponge)
             {
-                fixativeSprayController.enabled = true;
-            }
-            else if (useFrameGun &&
-                     frameGunController != null)
-            {
-                frameGunController.enabled = true;
+                SetControllerEnabled(spongeController, true);
             }
 
-            if (paletteKnifeVisual != null)
-            {
-                paletteKnifeVisual.SetActive(usePaletteKnife);
-            }
-
-            if (fixativeSprayVisual != null)
-            {
-                fixativeSprayVisual.SetActive(useFixativeSpray);
-            }
-
-            if (frameGunVisual != null)
-            {
-                frameGunVisual.SetActive(useFrameGun);
-            }
+            SetVisualActive(paletteKnifeVisual, usePaletteKnife);
+            SetVisualActive(fixativeSprayVisual, useFixativeSpray);
+            SetVisualActive(frameGunVisual, useFrameGun);
+            SetVisualActive(spongeVisual, useSponge);
 
             if (logToolChanges &&
                 (force || Application.isPlaying))
@@ -189,70 +204,149 @@ namespace PaintedAlive.Figures.Tools
             ActiveToolChanged?.Invoke(activeTool);
         }
 
+        private bool SelectionStateMatches()
+        {
+            bool usePaletteKnife =
+                activeTool == FigureToolId.PaletteKnife;
+            bool useFixativeSpray =
+                activeTool == FigureToolId.FixativeSpray;
+            bool useFrameGun =
+                activeTool == FigureToolId.FrameGun;
+            bool useSponge =
+                activeTool == FigureToolId.Sponge;
+
+            return ControllerMatches(
+                       paletteKnifeController,
+                       usePaletteKnife) &&
+                   ControllerMatches(
+                       fixativeSprayController,
+                       useFixativeSpray) &&
+                   ControllerMatches(
+                       frameGunController,
+                       useFrameGun) &&
+                   ControllerMatches(
+                       spongeController,
+                       useSponge) &&
+                   VisualMatches(
+                       paletteKnifeVisual,
+                       usePaletteKnife) &&
+                   VisualMatches(
+                       fixativeSprayVisual,
+                       useFixativeSpray) &&
+                   VisualMatches(
+                       frameGunVisual,
+                       useFrameGun) &&
+                   VisualMatches(
+                       spongeVisual,
+                       useSponge);
+        }
+
         private bool WasPaletteKnifeSelected()
         {
-            if (selectPaletteKnifeAction != null &&
-                selectPaletteKnifeAction.action != null)
+            if (WasActionPressed(selectPaletteKnifeAction))
             {
-                return selectPaletteKnifeAction.action
-                    .WasPressedThisFrame();
+                return true;
             }
 
             bool keyboardPressed =
                 Keyboard.current != null &&
-                Keyboard.current.digit1Key
-                    .wasPressedThisFrame;
-
+                Keyboard.current.digit1Key.wasPressedThisFrame;
             bool gamepadPressed =
                 Gamepad.current != null &&
-                Gamepad.current.dpad.left
-                    .wasPressedThisFrame;
-
+                Gamepad.current.dpad.left.wasPressedThisFrame;
             return keyboardPressed || gamepadPressed;
         }
 
         private bool WasFixativeSpraySelected()
         {
-            if (selectFixativeSprayAction != null &&
-                selectFixativeSprayAction.action != null)
+            if (WasActionPressed(selectFixativeSprayAction))
             {
-                return selectFixativeSprayAction.action
-                    .WasPressedThisFrame();
+                return true;
             }
 
             bool keyboardPressed =
                 Keyboard.current != null &&
-                Keyboard.current.digit2Key
-                    .wasPressedThisFrame;
-
+                Keyboard.current.digit2Key.wasPressedThisFrame;
             bool gamepadPressed =
                 Gamepad.current != null &&
-                Gamepad.current.dpad.right
-                    .wasPressedThisFrame;
-
+                Gamepad.current.dpad.right.wasPressedThisFrame;
             return keyboardPressed || gamepadPressed;
         }
 
         private bool WasFrameGunSelected()
         {
-            if (selectFrameGunAction != null &&
-                selectFrameGunAction.action != null)
+            if (WasActionPressed(selectFrameGunAction))
             {
-                return selectFrameGunAction.action
-                    .WasPressedThisFrame();
+                return true;
             }
 
             bool keyboardPressed =
                 Keyboard.current != null &&
-                Keyboard.current.digit3Key
-                    .wasPressedThisFrame;
-
+                Keyboard.current.digit3Key.wasPressedThisFrame;
             bool gamepadPressed =
                 Gamepad.current != null &&
-                Gamepad.current.dpad.up
-                    .wasPressedThisFrame;
-
+                Gamepad.current.dpad.up.wasPressedThisFrame;
             return keyboardPressed || gamepadPressed;
+        }
+
+        private bool WasSpongeSelected()
+        {
+            if (WasActionPressed(selectSpongeAction))
+            {
+                return true;
+            }
+
+            bool keyboardPressed =
+                Keyboard.current != null &&
+                Keyboard.current.digit4Key.wasPressedThisFrame;
+            bool gamepadPressed =
+                Gamepad.current != null &&
+                Gamepad.current.dpad.down.wasPressedThisFrame;
+            return keyboardPressed || gamepadPressed;
+        }
+
+        private static bool WasActionPressed(
+            InputActionReference actionReference)
+        {
+            return actionReference != null &&
+                   actionReference.action != null &&
+                   actionReference.action.WasPressedThisFrame();
+        }
+
+        private static void SetControllerEnabled(
+            MonoBehaviour controller,
+            bool value)
+        {
+            if (controller != null)
+            {
+                controller.enabled = value;
+            }
+        }
+
+        private static bool ControllerMatches(
+            MonoBehaviour controller,
+            bool expected)
+        {
+            return controller == null ||
+                   controller.enabled == expected;
+        }
+
+        private static void SetVisualActive(
+            GameObject visual,
+            bool value)
+        {
+            if (visual != null)
+            {
+                visual.SetActive(value);
+            }
+        }
+
+        private static bool VisualMatches(
+            GameObject visual,
+            bool expected)
+        {
+            return visual == null ||
+                   visual.activeSelf == expected;
         }
 
         private static void EnableAction(
@@ -271,15 +365,10 @@ namespace PaintedAlive.Figures.Tools
         {
             return tool switch
             {
-                FigureToolId.PaletteKnife =>
-                    "Palet Bıçağı",
-
-                FigureToolId.FixativeSpray =>
-                    "Sabitleyici Sprey",
-
-                FigureToolId.FrameGun =>
-                    "Çerçeve Tabancası",
-
+                FigureToolId.PaletteKnife => "Palet Bıçağı",
+                FigureToolId.FixativeSpray => "Sabitleyici Sprey",
+                FigureToolId.FrameGun => "Çerçeve Tabancası",
+                FigureToolId.Sponge => "Sünger",
                 _ => tool.ToString()
             };
         }
