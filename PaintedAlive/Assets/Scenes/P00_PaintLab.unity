@@ -727,6 +727,62 @@ Transform:
   - {fileID: 1799060503}
   m_Father: {fileID: 826464309}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &98189351
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 98189353}
+  - component: {fileID: 98189352}
+  m_Layer: 0
+  m_Name: '[PaintedAlive] Ink Manager'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &98189352
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 98189351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f98ecc959d9f8a641aacd2cb0958488f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkSystemManager
+  config: {fileID: 11400000, guid: ce53eb1cf8fcd0948bd6fec0219fe891, type: 2}
+  lekebacakDefinition: {fileID: 11400000, guid: ae207e6d9f825d444bd48187f302214b, type: 2}
+  inkSurfacePrefab: {fileID: 9067722387292828997, guid: 7ef8dce39a9d407429ae831959c88b82, type: 3}
+  inkCreaturePrefab: {fileID: 6673954599064790580, guid: b56110b727b90824d87e8af04e39b6b0, type: 3}
+  navigationMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  visibilityMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  activeCreatureCount: 0
+  cachedFigureCount: 0
+--- !u!4 &98189353
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 98189351}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &112068012
 GameObject:
   m_ObjectHideFlags: 0
@@ -5449,6 +5505,7 @@ GameObject:
   - component: {fileID: 907953241}
   - component: {fileID: 907953240}
   - component: {fileID: 907953242}
+  - component: {fileID: 907953243}
   m_Layer: 7
   m_Name: Figure_Player
   m_TagString: Player
@@ -6164,6 +6221,27 @@ MonoBehaviour:
   inputIsHeld: 0
   activeSurfaceCount: 0
   currentTargetDistance: 0
+--- !u!114 &907953243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64db332ff39ceae41b2ceea5e6d42f39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkDebugSpawner
+  targetFigure: {fileID: 907953215}
+  inkManager: {fileID: 98189352}
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  enableF9Shortcut: 1
+  forwardDistance: 3
+  probeHeight: 2.5
+  probeDistance: 6
 --- !u!1 &919058481
 GameObject:
   m_ObjectHideFlags: 0
@@ -11775,3 +11853,4 @@ SceneRoots:
   - {fileID: 557120259}
   - {fileID: 1535634045}
   - {fileID: 2124646387}
+  - {fileID: 98189353}

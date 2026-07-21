@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44106c16c6110ab46befd04b5cc8e2c2, type: 3}
+  m_Name: InkSystemConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkSystemConfig
+  maximumConcurrentCreatures: 8
+  simulationInterval: 0.05
+  figureDiscoveryInterval: 0.75
+  initialSurfaceRadius: 0.9
+  maximumSurfaceRadius: 2.2
+  initialInkAmount: 100
+  initialWetness: 1
+  groundProbeHeight: 0.8
+  groundProbeDistance: 1.8
+  surfaceOffset: 0.08
+  obstacleProbeRadius: 0.28
+  obstacleProbeDistance: 0.85
+  maximumWalkableSlope: 48
+  patrolRadius: 1.8
+  contactDistance: 0.72
+  clarityExposurePerContact: 1.4
+  contactCooldown: 1.1
+  surfaceExpansionPerSecond: 0.5
+  creatureWaterGainPerSecond: 0.65
+  creatureWaterDecayPerSecond: 0.22
+  maximumWaterScale: 1.5
+  minimumWaterControl: 0.32
+  maximumWaterWobbleDegrees: 68
+  maximumWaterSpeedMultiplier: 1.04
