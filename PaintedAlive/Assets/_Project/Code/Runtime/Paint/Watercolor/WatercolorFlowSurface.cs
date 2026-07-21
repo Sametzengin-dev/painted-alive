@@ -99,6 +99,20 @@ namespace PaintedAlive.Paint.Watercolor
 
         public int NodeCount => worldPoints.Count;
         public float CurrentLength => currentLength;
+        public Bounds WorldBounds
+        {
+            get
+            {
+                if (meshRenderer != null)
+                {
+                    return meshRenderer.bounds;
+                }
+
+                return new Bounds(
+                    transform.position,
+                    Vector3.one * 0.25f);
+            }
+        }
 
         [RuntimeInitializeOnLoadMethod(
             RuntimeInitializeLoadType.SubsystemRegistration)]

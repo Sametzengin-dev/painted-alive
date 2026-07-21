@@ -6140,7 +6140,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 907953212}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c3a68652bbb384f4986b5035be5aab80, type: 3}
   m_Name: 
@@ -6154,7 +6154,7 @@ MonoBehaviour:
   feedback: {fileID: 907953230}
   watercolorMask:
     serializedVersion: 2
-    m_Bits: 4294967291
+    m_Bits: 1019
   fixedWatercolorColor: {r: 0.72, g: 0.93, b: 1, a: 0.82}
   frozenSurfaceCount: 0
   lastFrozenSurface: {fileID: 0}
@@ -11470,7 +11470,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &2124646386
 MonoBehaviour:
   m_ObjectHideFlags: 0
