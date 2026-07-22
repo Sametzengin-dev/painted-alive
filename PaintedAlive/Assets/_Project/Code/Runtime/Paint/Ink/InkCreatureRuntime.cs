@@ -10,18 +10,33 @@ namespace PaintedAlive.Paint.Ink
         Patrol,
         Pursuit,
         ContactRecovery,
-        SurfaceLost
+        SurfaceLost,
+        Blinded,
+        Crippled,
+        Fixed,
+        Pinned
     }
 
     [DisallowMultipleComponent]
     public sealed class InkCreatureRuntime : MonoBehaviour
     {
         private const int MaximumPhysicsHits = 16;
+        private const float AnchorScanInterval = 0.1f;
+        private const string FrameAnchorMarkerName =
+            "FrameGunAnchor_Runtime";
+
+        private static readonly int BaseColorId =
+            Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId =
+            Shader.PropertyToID("_Color");
 
         private readonly List<InkGlyphModule> modules = new();
-        private readonly RaycastHit[] lineOfSightHits = new RaycastHit[MaximumPhysicsHits];
-        private readonly RaycastHit[] obstacleHits = new RaycastHit[MaximumPhysicsHits];
-        private readonly RaycastHit[] groundHits = new RaycastHit[MaximumPhysicsHits];
+        private readonly RaycastHit[] lineOfSightHits =
+            new RaycastHit[MaximumPhysicsHits];
+        private readonly RaycastHit[] obstacleHits =
+            new RaycastHit[MaximumPhysicsHits];
+        private readonly RaycastHit[] groundHits =
+            new RaycastHit[MaximumPhysicsHits];
 
         [SerializeField]
         private Transform visualRoot;
@@ -54,6 +69,15 @@ namespace PaintedAlive.Paint.Ink
         [SerializeField]
         private bool initialized;
 
+        [SerializeField]
+        private float fixedUntil;
+
+        [SerializeField]
+        private bool pinnedByFrameGun;
+
+        [SerializeField]
+        private int activeGlyphCount;
+
         private InkSystemManager owner;
         private InkSystemConfig config;
         private Vector3 homePosition;
@@ -68,7 +92,14 @@ namespace PaintedAlive.Paint.Ink
         private bool hasFoot;
         private float nextTargetRefreshTime;
         private float nextContactTime;
+        private float nextAnchorScanTime;
         private float patrolPhase;
+        private Color fixedInkColor =
+            new Color(0.36f, 0.46f, 0.54f, 1f);
+        private InkGlyphHitZone[] glyphHitZones;
+        private Renderer[] allRenderers;
+        private MaterialPropertyBlock counterplayPropertyBlock;
+        private int lastVisualMode = -1;
 
         public InkCreatureDefinition Definition => definition;
         public FigureMotor CurrentTarget => currentTarget;
@@ -78,6 +109,9 @@ namespace PaintedAlive.Paint.Ink
         public float WaterExposure => waterExposure;
         public bool SurfaceValid => surfaceValid;
         public bool IsInitialized => initialized;
+        public bool IsFixed => initialized && Time.time < fixedUntil;
+        public bool IsPinned => pinnedByFrameGun;
+        public int ActiveGlyphCount => activeGlyphCount;
         public IReadOnlyList<InkGlyphModule> Modules => modules;
         public Bounds WorldBounds => bodyRenderer != null
             ? bodyRenderer.bounds
@@ -87,6 +121,7 @@ namespace PaintedAlive.Paint.Ink
         {
             visualRoot ??= transform;
             bodyRenderer ??= GetComponentInChildren<Renderer>();
+            CacheVisualComponents();
         }
 
         private void OnDestroy()
@@ -107,7 +142,8 @@ namespace PaintedAlive.Paint.Ink
             config = systemConfig;
             definition = creatureDefinition;
             homePosition = home;
-            patrolPhase = Mathf.Abs(GetInstanceID() * 0.173f) % (Mathf.PI * 2f);
+            patrolPhase = Mathf.Abs(GetInstanceID() * 0.173f) %
+                (Mathf.PI * 2f);
             visualRoot ??= transform;
             bodyRenderer ??= GetComponentInChildren<Renderer>();
             baseVisualScale = visualRoot.localScale;
@@ -124,9 +160,11 @@ namespace PaintedAlive.Paint.Ink
             detectionRange = 0f;
             targetRefreshInterval = 0.25f;
             requiresLineOfSight = false;
-            hasEye = false;
-            hasFoot = false;
             currentDurability = definition.BaseDurability;
+            currentTarget = null;
+            waterExposure = 0f;
+            fixedUntil = 0f;
+            pinnedByFrameGun = false;
 
             IReadOnlyList<InkGlyphDefinition> glyphs = definition.Glyphs;
 
@@ -147,18 +185,17 @@ namespace PaintedAlive.Paint.Ink
                     switch (glyph.GlyphType)
                     {
                         case InkGlyphType.Eye:
-                            hasEye = true;
                             detectionRange = Mathf.Max(
                                 detectionRange,
                                 glyph.DetectionRange);
                             targetRefreshInterval = Mathf.Min(
                                 targetRefreshInterval,
                                 glyph.TargetRefreshInterval);
-                            requiresLineOfSight |= glyph.RequiresLineOfSight;
+                            requiresLineOfSight |=
+                                glyph.RequiresLineOfSight;
                             break;
 
                         case InkGlyphType.Foot:
-                            hasFoot = true;
                             movementSpeed += glyph.MovementSpeed;
                             turnSpeedDegrees = Mathf.Max(
                                 turnSpeedDegrees,
@@ -171,7 +208,12 @@ namespace PaintedAlive.Paint.Ink
             currentDurability = Mathf.Max(1f, currentDurability);
             initialized = true;
             surfaceValid = true;
-            currentState = hasFoot ? InkCreatureState.Patrol : InkCreatureState.Dormant;
+            CacheVisualComponents();
+            RefreshCapabilitiesFromModules();
+            currentState = hasFoot
+                ? InkCreatureState.Patrol
+                : InkCreatureState.Dormant;
+            RefreshGlyphHitZones();
             ApplyVisualState();
             return true;
         }
@@ -192,23 +234,45 @@ namespace PaintedAlive.Paint.Ink
                 waterExposure,
                 0f,
                 config.CreatureWaterDecayPerSecond * deltaTime);
+            RefreshCapabilitiesFromModules();
+            RefreshFrameAnchorState(now);
+
+            if (IsFixed)
+            {
+                currentSpeed = 0f;
+                currentState = InkCreatureState.Fixed;
+                ApplyVisualState();
+                return;
+            }
+
+            if (pinnedByFrameGun)
+            {
+                currentSpeed = 0f;
+                currentState = InkCreatureState.Pinned;
+                ApplyVisualState();
+                return;
+            }
 
             if (hasEye && now >= nextTargetRefreshTime)
             {
                 RefreshTarget(figures, visibilityMask);
-                nextTargetRefreshTime = now + Mathf.Max(0.05f, targetRefreshInterval);
+                nextTargetRefreshTime =
+                    now + Mathf.Max(0.05f, targetRefreshInterval);
             }
 
             if (!hasFoot || movementSpeed <= 0f)
             {
+                currentTarget = null;
                 currentSpeed = 0f;
-                currentState = InkCreatureState.Dormant;
+                currentState = InkCreatureState.Crippled;
                 ApplyVisualState();
                 return;
             }
 
             Vector3 desiredDirection = GetDesiredDirection(now);
-            desiredDirection = ApplyWatercolorInstability(desiredDirection, now);
+            desiredDirection = ApplyWatercolorInstability(
+                desiredDirection,
+                now);
             desiredDirection = AvoidObstacles(
                 desiredDirection,
                 navigationMask);
@@ -221,7 +285,8 @@ namespace PaintedAlive.Paint.Ink
                 1f,
                 config.MaximumWaterSpeedMultiplier,
                 waterExposure);
-            float stepDistance = movementSpeed * speedMultiplier * deltaTime;
+            float stepDistance =
+                movementSpeed * speedMultiplier * deltaTime;
             Vector3 predictedPosition =
                 transform.position + desiredDirection * stepDistance;
 
@@ -265,7 +330,9 @@ namespace PaintedAlive.Paint.Ink
             ApplyVisualState();
         }
 
-        public void ApplyWatercolorExposure(float amount, Vector3 flowDirection)
+        public void ApplyWatercolorExposure(
+            float amount,
+            Vector3 flowDirection)
         {
             if (!initialized || amount <= 0f)
             {
@@ -282,6 +349,69 @@ namespace PaintedAlive.Paint.Ink
             ApplyVisualState();
         }
 
+        public bool ApplyFixative(float duration, Color statueColor)
+        {
+            if (!initialized || duration <= 0f)
+            {
+                return false;
+            }
+
+            bool wasFixed = IsFixed;
+            fixedUntil = Mathf.Max(fixedUntil, Time.time + duration);
+            fixedInkColor = statueColor;
+            currentTarget = null;
+            currentSpeed = 0f;
+            currentState = InkCreatureState.Fixed;
+            ApplyVisualState();
+            return !wasFixed;
+        }
+
+        public bool TryDamageGlyph(
+            InkGlyphType type,
+            float damage,
+            out bool glyphDisabled,
+            out float remainingDurability)
+        {
+            glyphDisabled = false;
+            remainingDurability = 0f;
+
+            if (!initialized || damage <= 0f)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < modules.Count; i++)
+            {
+                InkGlyphModule module = modules[i];
+
+                if (module == null ||
+                    !module.IsEnabled ||
+                    module.Type != type)
+                {
+                    continue;
+                }
+
+                float appliedDamage = module.ApplyDamage(damage);
+
+                if (appliedDamage <= 0f)
+                {
+                    return false;
+                }
+
+                currentDurability = Mathf.Max(
+                    0f,
+                    currentDurability - appliedDamage);
+                remainingDurability = module.CurrentDurability;
+                glyphDisabled = !module.IsEnabled;
+                RefreshCapabilitiesFromModules();
+                RefreshGlyphHitZones();
+                ApplyVisualState();
+                return true;
+            }
+
+            return false;
+        }
+
         public bool HasGlyph(InkGlyphType type)
         {
             for (int i = 0; i < modules.Count; i++)
@@ -295,6 +425,55 @@ namespace PaintedAlive.Paint.Ink
             }
 
             return false;
+        }
+
+        public float GetGlyphDurability(InkGlyphType type)
+        {
+            for (int i = 0; i < modules.Count; i++)
+            {
+                InkGlyphModule module = modules[i];
+
+                if (module.Type == type)
+                {
+                    return module.CurrentDurability;
+                }
+            }
+
+            return 0f;
+        }
+
+        public void RefreshGlyphHitZones()
+        {
+            if (glyphHitZones == null || glyphHitZones.Length == 0)
+            {
+                glyphHitZones =
+                    GetComponentsInChildren<InkGlyphHitZone>(true);
+            }
+
+            for (int i = 0; i < glyphHitZones.Length; i++)
+            {
+                glyphHitZones[i]?.RefreshFromCreature();
+            }
+        }
+
+        private void RefreshCapabilitiesFromModules()
+        {
+            hasEye = HasGlyph(InkGlyphType.Eye);
+            hasFoot = HasGlyph(InkGlyphType.Foot);
+            activeGlyphCount = 0;
+
+            for (int i = 0; i < modules.Count; i++)
+            {
+                if (modules[i].IsEnabled)
+                {
+                    activeGlyphCount++;
+                }
+            }
+
+            if (!hasEye)
+            {
+                currentTarget = null;
+            }
         }
 
         private void RefreshTarget(
@@ -316,7 +495,8 @@ namespace PaintedAlive.Paint.Ink
                     }
 
                     float distanceSquared =
-                        (figure.transform.position - transform.position).sqrMagnitude;
+                        (figure.transform.position - transform.position)
+                        .sqrMagnitude;
 
                     if (distanceSquared >= bestDistanceSquared ||
                         (requiresLineOfSight &&
@@ -336,7 +516,8 @@ namespace PaintedAlive.Paint.Ink
         private bool HasLineOfSight(FigureMotor figure, LayerMask mask)
         {
             Vector3 origin = transform.position + Vector3.up * 0.45f;
-            Vector3 target = figure.transform.position + Vector3.up * 0.65f;
+            Vector3 target =
+                figure.transform.position + Vector3.up * 0.65f;
             Vector3 direction = target - origin;
             float distance = direction.magnitude;
 
@@ -359,7 +540,7 @@ namespace PaintedAlive.Paint.Ink
                 Collider hitCollider = lineOfSightHits[i].collider;
 
                 if (hitCollider == null ||
-                    hitCollider.transform.IsChildOf(transform))
+                    IsOwnCollider(hitCollider))
                 {
                     continue;
                 }
@@ -389,7 +570,9 @@ namespace PaintedAlive.Paint.Ink
                     Vector3.up).normalized;
             }
 
-            currentState = InkCreatureState.Patrol;
+            currentState = hasEye
+                ? InkCreatureState.Patrol
+                : InkCreatureState.Blinded;
             float angle = patrolPhase + now * 0.7f;
             Vector3 patrolPoint = homePosition + new Vector3(
                 Mathf.Cos(angle),
@@ -407,9 +590,12 @@ namespace PaintedAlive.Paint.Ink
             return direction.normalized;
         }
 
-        private Vector3 ApplyWatercolorInstability(Vector3 direction, float now)
+        private Vector3 ApplyWatercolorInstability(
+            Vector3 direction,
+            float now)
         {
-            if (direction.sqrMagnitude < 0.001f || waterExposure <= 0.001f)
+            if (direction.sqrMagnitude < 0.001f ||
+                waterExposure <= 0.001f)
             {
                 return direction;
             }
@@ -418,14 +604,18 @@ namespace PaintedAlive.Paint.Ink
             float wobble = Mathf.Sin(phase) *
                 config.MaximumWaterWobbleDegrees *
                 waterExposure;
-            Vector3 unstable = Quaternion.AngleAxis(wobble, Vector3.up) * direction;
+            Vector3 unstable =
+                Quaternion.AngleAxis(wobble, Vector3.up) * direction;
 
             if (watercolorDirection.sqrMagnitude > 0.001f)
             {
                 unstable = Vector3.Slerp(
                     unstable,
-                    Vector3.ProjectOnPlane(watercolorDirection, Vector3.up).normalized,
-                    waterExposure * 0.22f * (0.5f + 0.5f * Mathf.Sin(phase * 0.61f)));
+                    Vector3.ProjectOnPlane(
+                        watercolorDirection,
+                        Vector3.up).normalized,
+                    waterExposure * 0.22f *
+                    (0.5f + 0.5f * Mathf.Sin(phase * 0.61f)));
             }
 
             return unstable.normalized;
@@ -453,8 +643,9 @@ namespace PaintedAlive.Paint.Ink
                 Collider hitCollider = obstacleHits[i].collider;
 
                 if (hitCollider == null ||
-                    hitCollider.transform.IsChildOf(transform) ||
-                    hitCollider.GetComponentInParent<FigureMotor>() == currentTarget)
+                    IsOwnCollider(hitCollider) ||
+                    hitCollider.GetComponentInParent<FigureMotor>() ==
+                    currentTarget)
                 {
                     continue;
                 }
@@ -468,7 +659,10 @@ namespace PaintedAlive.Paint.Ink
                     tangent = -tangent;
                 }
 
-                return Vector3.Slerp(direction, tangent, 0.82f).normalized;
+                return Vector3.Slerp(
+                    direction,
+                    tangent,
+                    0.82f).normalized;
             }
 
             return direction;
@@ -480,7 +674,8 @@ namespace PaintedAlive.Paint.Ink
             out Vector3 groundedPosition,
             out Vector3 normal)
         {
-            Vector3 origin = predictedPosition + Vector3.up * config.GroundProbeHeight;
+            Vector3 origin =
+                predictedPosition + Vector3.up * config.GroundProbeHeight;
             int count = Physics.RaycastNonAlloc(
                 origin,
                 Vector3.down,
@@ -496,7 +691,7 @@ namespace PaintedAlive.Paint.Ink
                 RaycastHit hit = groundHits[i];
 
                 if (hit.collider == null ||
-                    hit.collider.transform.IsChildOf(transform) ||
+                    IsOwnCollider(hit.collider) ||
                     hit.distance >= nearestDistance)
                 {
                     continue;
@@ -521,21 +716,26 @@ namespace PaintedAlive.Paint.Ink
             }
 
             normal = bestHit.normal.normalized;
-            groundedPosition = bestHit.point + normal * config.SurfaceOffset;
+            groundedPosition =
+                bestHit.point + normal * config.SurfaceOffset;
             return true;
         }
 
         private void TryApplyContact(float now)
         {
-            if (currentTarget == null || now < nextContactTime)
+            if (currentTarget == null ||
+                !hasEye ||
+                now < nextContactTime)
             {
                 return;
             }
 
-            Vector3 delta = currentTarget.transform.position - transform.position;
+            Vector3 delta =
+                currentTarget.transform.position - transform.position;
             delta.y = 0f;
 
-            if (delta.sqrMagnitude > config.ContactDistance * config.ContactDistance)
+            if (delta.sqrMagnitude >
+                config.ContactDistance * config.ContactDistance)
             {
                 return;
             }
@@ -554,6 +754,51 @@ namespace PaintedAlive.Paint.Ink
             currentState = InkCreatureState.ContactRecovery;
         }
 
+        private bool IsOwnCollider(Collider targetCollider)
+        {
+            return targetCollider != null &&
+                   (targetCollider.transform == transform ||
+                    targetCollider.transform.IsChildOf(transform));
+        }
+
+        private void RefreshFrameAnchorState(float now)
+        {
+            if (now < nextAnchorScanTime)
+            {
+                return;
+            }
+
+            nextAnchorScanTime = now + AnchorScanInterval;
+            pinnedByFrameGun =
+                ContainsFrameAnchorMarker(transform);
+        }
+
+        private static bool ContainsFrameAnchorMarker(Transform root)
+        {
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform child = root.GetChild(i);
+
+                if (child.name.StartsWith(
+                        FrameAnchorMarkerName,
+                        System.StringComparison.Ordinal) ||
+                    ContainsFrameAnchorMarker(child))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void CacheVisualComponents()
+        {
+            glyphHitZones =
+                GetComponentsInChildren<InkGlyphHitZone>(true);
+            allRenderers = GetComponentsInChildren<Renderer>(true);
+            counterplayPropertyBlock ??= new MaterialPropertyBlock();
+        }
+
         private void ApplyVisualState()
         {
             if (visualRoot == null || definition == null || config == null)
@@ -569,6 +814,44 @@ namespace PaintedAlive.Paint.Ink
             visualRoot.localScale = Vector3.Scale(
                 baseVisualScale,
                 new Vector3(scale, scale * squash, scale));
+
+            int visualMode = IsFixed ? 2 : pinnedByFrameGun ? 1 : 0;
+
+            if (visualMode == lastVisualMode)
+            {
+                return;
+            }
+
+            lastVisualMode = visualMode;
+
+            if (allRenderers == null || allRenderers.Length == 0)
+            {
+                allRenderers = GetComponentsInChildren<Renderer>(true);
+            }
+
+            for (int i = 0; i < allRenderers.Length; i++)
+            {
+                Renderer targetRenderer = allRenderers[i];
+
+                if (targetRenderer == null)
+                {
+                    continue;
+                }
+
+                if (visualMode == 0)
+                {
+                    targetRenderer.SetPropertyBlock(null);
+                    continue;
+                }
+
+                counterplayPropertyBlock.Clear();
+                Color stateColor = visualMode == 2
+                    ? fixedInkColor
+                    : new Color(0.12f, 0.055f, 0.18f, 1f);
+                counterplayPropertyBlock.SetColor(BaseColorId, stateColor);
+                counterplayPropertyBlock.SetColor(ColorId, stateColor);
+                targetRenderer.SetPropertyBlock(counterplayPropertyBlock);
+            }
         }
     }
 }

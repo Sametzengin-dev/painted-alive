@@ -5506,6 +5506,8 @@ GameObject:
   - component: {fileID: 907953240}
   - component: {fileID: 907953242}
   - component: {fileID: 907953243}
+  - component: {fileID: 907953245}
+  - component: {fileID: 907953244}
   m_Layer: 7
   m_Name: Figure_Player
   m_TagString: Player
@@ -6242,6 +6244,57 @@ MonoBehaviour:
   forwardDistance: 3
   probeHeight: 2.5
   probeDistance: 6
+--- !u!114 &907953244
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 391e8813eb0803c4eac9632e82da4bc9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.InkFixativeBridge
+  fixativeController: {fileID: 907953229}
+  outputCamera: {fileID: 330585545}
+  toolOrigin: {fileID: 1250460772}
+  useToolAction: {fileID: -8477353026357040613, guid: 0e049032a0466584399a2b47d82f7219, type: 3}
+  clarityState: {fileID: 907953219}
+  fixativeConfig: {fileID: 11400000, guid: 168d30661de1c96418930c707658f613, type: 2}
+  feedback: {fileID: 907953230}
+  counterplayConfig: {fileID: 11400000, guid: 1ca260ae7f7835c4bb94cba93547870c, type: 2}
+  inkMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  currentTarget: {fileID: 0}
+  fixedCreatureCount: 0
+  currentTargetDistance: 0
+--- !u!114 &907953245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6ad7dddd29817b4096fef90dc003745, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.InkPaletteKnifeBridge
+  paletteKnifeController: {fileID: 907953218}
+  outputCamera: {fileID: 330585545}
+  toolOrigin: {fileID: 919058482}
+  useToolAction: {fileID: -8477353026357040613, guid: 0e049032a0466584399a2b47d82f7219, type: 3}
+  clarityState: {fileID: 907953219}
+  counterplayConfig: {fileID: 11400000, guid: 1ca260ae7f7835c4bb94cba93547870c, type: 2}
+  inkMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  lastCutGlyph: 0
+  lastCutDisabledGlyph: 0
+  lastRemainingDurability: 0
+  successfulCutCount: 0
 --- !u!1 &919058481
 GameObject:
   m_ObjectHideFlags: 0

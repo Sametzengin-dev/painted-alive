@@ -20,3 +20,4 @@ MonoBehaviour:
   movementSpeed: 0
   turnSpeedDegrees: 0
   durabilityModifier: -1
+  glyphDurability: 1

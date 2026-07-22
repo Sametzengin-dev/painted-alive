@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 7390609587027251528}
   - component: {fileID: 9067722387292828997}
   - component: {fileID: 811732774949899225}
+  - component: {fileID: 839599868321071941}
   m_Layer: 0
   m_Name: InkSurface
   m_TagString: Untagged
@@ -149,3 +150,17 @@ MonoBehaviour:
   inkCreature: {fileID: 0}
   reactionCount: 0
   lastInfluence: 0
+--- !u!114 &839599868321071941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6668244568918574249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a2405f96b994c64f921eec91f802865, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkSurfaceSpongeSource
+  inkSurface: {fileID: 9067722387292828997}
+  inkColor: {r: 0.015, g: 0.01, b: 0.025, a: 1}

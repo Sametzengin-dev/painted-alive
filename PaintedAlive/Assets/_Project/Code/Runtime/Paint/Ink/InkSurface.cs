@@ -122,6 +122,35 @@ namespace PaintedAlive.Paint.Ink
             RefreshVisual();
         }
 
+        public float AbsorbInk(float requestedAmount)
+        {
+            if (!initialized || requestedAmount <= 0f || inkAmount <= 0f)
+            {
+                return 0f;
+            }
+
+            float previousAmount = inkAmount;
+            float absorbed = Mathf.Min(requestedAmount, previousAmount);
+            inkAmount -= absorbed;
+
+            if (inkAmount <= 0.001f)
+            {
+                inkAmount = 0f;
+                initialized = false;
+                Destroy(gameObject);
+                return absorbed;
+            }
+
+            float remainingRatio = Mathf.Clamp01(inkAmount / previousAmount);
+            currentRadius = Mathf.Max(
+                0.08f,
+                currentRadius * Mathf.Sqrt(remainingRatio));
+            wetness = Mathf.Clamp01(wetness - absorbed * 0.0025f);
+            RefreshScale();
+            RefreshVisual();
+            return absorbed;
+        }
+
         private void RefreshScale()
         {
             float diameter = currentRadius * 2f;

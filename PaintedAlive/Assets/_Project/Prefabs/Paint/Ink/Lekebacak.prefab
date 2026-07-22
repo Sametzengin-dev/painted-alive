@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5853119680844009898}
   - component: {fileID: 6673954599064790580}
   - component: {fileID: 451823607507214606}
+  - component: {fileID: 952573643127884971}
   m_Layer: 0
   m_Name: Lekebacak
   m_TagString: Untagged
@@ -36,6 +37,7 @@ Transform:
   - {fileID: 5898117413545244041}
   - {fileID: 6633413333338428865}
   - {fileID: 7263419009667154341}
+  - {fileID: 8190534014503954971}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &5853119680844009898
@@ -81,6 +83,9 @@ MonoBehaviour:
   waterExposure: 0
   surfaceValid: 0
   initialized: 0
+  fixedUntil: 0
+  pinnedByFrameGun: 0
+  activeGlyphCount: 0
 --- !u!114 &451823607507214606
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -98,6 +103,33 @@ MonoBehaviour:
   inkCreature: {fileID: 6673954599064790580}
   reactionCount: 0
   lastInfluence: 0
+--- !u!54 &952573643127884971
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3663402312123467772}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 1
+  m_Constraints: 0
+  m_CollisionDetection: 3
 --- !u!1 &3943586299293897747
 GameObject:
   m_ObjectHideFlags: 0
@@ -188,6 +220,59 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4428414015759897452
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8190534014503954971}
+  - component: {fileID: 7869199965940456660}
+  m_Layer: 0
+  m_Name: FrameAnchorTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8190534014503954971
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4428414015759897452}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.36, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6806560407969360436}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &7869199965940456660
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4428414015759897452}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.22
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &5533891695382446240
 GameObject:
   m_ObjectHideFlags: 0
@@ -199,6 +284,8 @@ GameObject:
   - component: {fileID: 5898117413545244041}
   - component: {fileID: 1415179374947544240}
   - component: {fileID: 4825712578410221934}
+  - component: {fileID: 3280099964763065709}
+  - component: {fileID: 5136630136927246706}
   m_Layer: 0
   m_Name: EyeGlyph
   m_TagString: Untagged
@@ -279,6 +366,45 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!135 &3280099964763065709
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5533891695382446240}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.62
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5136630136927246706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5533891695382446240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3cfa74db389f154286b4ef77e3cd917, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkGlyphHitZone
+  glyphType: 0
+  creature: {fileID: 6673954599064790580}
+  hitCollider: {fileID: 3280099964763065709}
+  glyphRenderers:
+  - {fileID: 4825712578410221934}
+  - {fileID: 8825524184563320101}
 --- !u!1 &6106202019350052383
 GameObject:
   m_ObjectHideFlags: 0
@@ -289,6 +415,8 @@ GameObject:
   m_Component:
   - component: {fileID: 6633413333338428865}
   - component: {fileID: 4417078622530067754}
+  - component: {fileID: 8724561178216425024}
+  - component: {fileID: 4091431635554514886}
   m_Layer: 0
   m_Name: FootGlyph_Left
   m_TagString: Untagged
@@ -432,6 +560,44 @@ LineRenderer:
   m_UseWorldSpace: 0
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!65 &8724561178216425024
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6106202019350052383}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.28, y: 0.34, z: 0.52}
+  m_Center: {x: -0.27, y: 0.15, z: 0.11}
+--- !u!114 &4091431635554514886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6106202019350052383}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3cfa74db389f154286b4ef77e3cd917, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkGlyphHitZone
+  glyphType: 1
+  creature: {fileID: 6673954599064790580}
+  hitCollider: {fileID: 8724561178216425024}
+  glyphRenderers:
+  - {fileID: 4417078622530067754}
 --- !u!1 &7508740416661173114
 GameObject:
   m_ObjectHideFlags: 0
@@ -442,6 +608,8 @@ GameObject:
   m_Component:
   - component: {fileID: 7263419009667154341}
   - component: {fileID: 7873888239994497939}
+  - component: {fileID: 5404564617039827748}
+  - component: {fileID: 8211441249464276016}
   m_Layer: 0
   m_Name: FootGlyph_Right
   m_TagString: Untagged
@@ -585,6 +753,44 @@ LineRenderer:
   m_UseWorldSpace: 0
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!65 &5404564617039827748
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7508740416661173114}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.28, y: 0.34, z: 0.52}
+  m_Center: {x: 0.27, y: 0.15, z: 0.11}
+--- !u!114 &8211441249464276016
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7508740416661173114}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3cfa74db389f154286b4ef77e3cd917, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkGlyphHitZone
+  glyphType: 1
+  creature: {fileID: 6673954599064790580}
+  hitCollider: {fileID: 5404564617039827748}
+  glyphRenderers:
+  - {fileID: 7873888239994497939}
 --- !u!1 &8295534215295272699
 GameObject:
   m_ObjectHideFlags: 0

@@ -20,3 +20,4 @@ MonoBehaviour:
   movementSpeed: 4.1
   turnSpeedDegrees: 480
   durabilityModifier: -2
+  glyphDurability: 1

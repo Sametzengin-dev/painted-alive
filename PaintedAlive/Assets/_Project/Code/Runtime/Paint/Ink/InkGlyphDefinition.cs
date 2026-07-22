@@ -34,6 +34,10 @@ namespace PaintedAlive.Paint.Ink
         [SerializeField]
         private float durabilityModifier;
 
+        [Header("Counterplay")]
+        [SerializeField, Min(0.1f)]
+        private float glyphDurability = 1f;
+
         public InkGlyphType GlyphType => glyphType;
         public int ComplexityCost => complexityCost;
         public float DetectionRange => detectionRange;
@@ -42,6 +46,7 @@ namespace PaintedAlive.Paint.Ink
         public float MovementSpeed => movementSpeed;
         public float TurnSpeedDegrees => turnSpeedDegrees;
         public float DurabilityModifier => durabilityModifier;
+        public float GlyphDurability => glyphDurability;
 
         private void OnValidate()
         {
@@ -53,6 +58,7 @@ namespace PaintedAlive.Paint.Ink
                 2f);
             movementSpeed = Mathf.Max(0f, movementSpeed);
             turnSpeedDegrees = Mathf.Max(0f, turnSpeedDegrees);
+            glyphDurability = Mathf.Max(0.1f, glyphDurability);
         }
     }
 }
