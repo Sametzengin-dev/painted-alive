@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67481403de92fcc4b951fa2083cffde5, type: 3}
+  m_Name: InkPounceAttackConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Combat.InkPounceAttackConfig
+  aiAttackRange: 2.15
+  windupDuration: 0.6
+  pounceDuration: 0.28
+  pounceDistance: 2.35
+  hitRecoveryDuration: 0.72
+  missVulnerabilityDuration: 1.2
+  attackCooldown: 2.5
+  hitRadius: 0.48
+  clarityDamage: 7
+  maximumStainStacks: 3
+  stainDuration: 5
+  pounceArcHeight: 0.22
+  maximumWaterAimError: 28
+  windupScaleY: 0.7
+  windupScaleXZ: 1.15
+  footprintMaterial: {fileID: 2100000, guid: e468fafe7fdff39418a784b79cf04a62, type: 2}
+  footprintStepDistance: 0.38
+  footprintLifetime: 4.5
+  footprintPoolSize: 16
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  groundProbeHeight: 0.9
+  groundProbeDistance: 1.8
+  surfaceOffset: 0.08

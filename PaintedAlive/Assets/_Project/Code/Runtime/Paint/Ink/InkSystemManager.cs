@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PaintedAlive.Figures;
+using PaintedAlive.Paint.Ink.Lifecycle;
 using UnityEngine;
 
 namespace PaintedAlive.Paint.Ink
@@ -7,10 +8,14 @@ namespace PaintedAlive.Paint.Ink
     [DisallowMultipleComponent]
     public sealed class InkSystemManager : MonoBehaviour
     {
+        private const int MaximumSpawnGroundHits = 16;
+
         private static InkSystemManager activeInstance;
 
         private readonly List<InkCreatureRuntime> activeCreatures = new();
         private readonly List<FigureMotor> cachedFigures = new();
+        private readonly RaycastHit[] spawnGroundHits =
+            new RaycastHit[MaximumSpawnGroundHits];
 
         [Header("Definitions")]
         [SerializeField]
@@ -45,15 +50,18 @@ namespace PaintedAlive.Paint.Ink
 
         public static InkSystemManager ActiveInstance => activeInstance;
         public InkSystemConfig Config => config;
-        public InkCreatureDefinition LekebacakDefinition => lekebacakDefinition;
-        public IReadOnlyList<InkCreatureRuntime> ActiveCreatures => activeCreatures;
+        public InkCreatureDefinition LekebacakDefinition =>
+            lekebacakDefinition;
+        public IReadOnlyList<InkCreatureRuntime> ActiveCreatures =>
+            activeCreatures;
         public int ActiveCreatureCount => activeCreatureCount;
         public int CachedFigureCount => cachedFigureCount;
         public int CreatureLimit => config != null
             ? config.MaximumConcurrentCreatures
             : 0;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        [RuntimeInitializeOnLoadMethod(
+            RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
             activeInstance = null;
@@ -124,7 +132,8 @@ namespace PaintedAlive.Paint.Ink
             if (now >= nextFigureDiscoveryTime)
             {
                 RefreshFigureCache();
-                nextFigureDiscoveryTime = now + config.FigureDiscoveryInterval;
+                nextFigureDiscoveryTime = now +
+                    config.FigureDiscoveryInterval;
             }
 
             accumulatedSimulationTime += Time.deltaTime;
@@ -151,29 +160,15 @@ namespace PaintedAlive.Paint.Ink
             createdSurface = null;
             createdCreature = null;
 
-            RemoveDestroyedCreatures();
-
-            if (!isActiveAndEnabled ||
-                config == null ||
-                activeCreatures.Count >= config.MaximumConcurrentCreatures)
+            if (!CanSpawnCreature())
             {
                 return false;
             }
 
-            Vector3 normal = surfaceNormal.sqrMagnitude > 0.001f
-                ? surfaceNormal.normalized
-                : Vector3.up;
-            Vector3 planarForward = Vector3.ProjectOnPlane(
+            Vector3 normal = NormalizeSurfaceNormal(surfaceNormal);
+            Vector3 planarForward = NormalizePlanarDirection(
                 facingDirection,
-                normal).normalized;
-
-            if (planarForward.sqrMagnitude < 0.001f)
-            {
-                planarForward = Vector3.ProjectOnPlane(
-                    Vector3.forward,
-                    normal).normalized;
-            }
-
+                normal);
             Quaternion surfaceRotation = Quaternion.FromToRotation(
                 Vector3.up,
                 normal);
@@ -194,34 +189,66 @@ namespace PaintedAlive.Paint.Ink
 
             Vector3 creaturePosition =
                 surfacePoint + normal * config.SurfaceOffset;
-            Quaternion creatureRotation = Quaternion.LookRotation(
-                planarForward,
-                normal);
-            createdCreature = Instantiate(
-                inkCreaturePrefab,
-                creaturePosition,
-                creatureRotation);
-            createdCreature.name = "Lekebacak_Runtime";
 
-            if (!createdCreature.Initialize(
-                    this,
-                    config,
-                    lekebacakDefinition,
-                    creaturePosition))
+            if (!TryCreateCreature(
+                    creaturePosition,
+                    normal,
+                    planarForward,
+                    "Lekebacak_Runtime",
+                    out createdCreature))
             {
-                Destroy(createdCreature.gameObject);
                 Destroy(createdSurface.gameObject);
-                createdCreature = null;
                 createdSurface = null;
                 return false;
             }
 
-            WatercolorInkReaction creatureReaction =
-                createdCreature.GetComponent<WatercolorInkReaction>();
-            creatureReaction?.Configure(config);
-            activeCreatures.Add(createdCreature);
-            activeCreatureCount = activeCreatures.Count;
+            InkNestSpawner nest =
+                createdSurface.GetComponent<InkNestSpawner>();
+            nest?.Initialize(this, createdCreature);
             return true;
+        }
+
+        public bool TrySpawnLekebacakFromNest(
+            InkSurface nestSurface,
+            Vector3 outwardDirection,
+            float requestedRadius,
+            out InkCreatureRuntime createdCreature)
+        {
+            createdCreature = null;
+
+            if (nestSurface == null ||
+                !nestSurface.IsInitialized ||
+                !CanSpawnCreature())
+            {
+                return false;
+            }
+
+            Vector3 normal = NormalizeSurfaceNormal(
+                nestSurface.SurfaceNormal);
+            Vector3 planarForward = NormalizePlanarDirection(
+                outwardDirection,
+                normal);
+            float radius = Mathf.Clamp(
+                requestedRadius,
+                0.1f,
+                Mathf.Max(0.1f, nestSurface.CurrentRadius * 0.8f));
+            Vector3 requestedPoint =
+                nestSurface.transform.position + planarForward * radius;
+
+            if (!TryFindSpawnGround(
+                    requestedPoint,
+                    out Vector3 groundedPoint,
+                    out Vector3 groundedNormal))
+            {
+                return false;
+            }
+
+            return TryCreateCreature(
+                groundedPoint + groundedNormal * config.SurfaceOffset,
+                groundedNormal,
+                planarForward,
+                "Lekebacak_Runtime_Nest",
+                out createdCreature);
         }
 
         public void UnregisterCreature(InkCreatureRuntime creature)
@@ -235,11 +262,112 @@ namespace PaintedAlive.Paint.Ink
             activeCreatureCount = activeCreatures.Count;
         }
 
+        private bool CanSpawnCreature()
+        {
+            RemoveDestroyedCreatures();
+            return isActiveAndEnabled &&
+                   config != null &&
+                   activeCreatures.Count <
+                   config.MaximumConcurrentCreatures;
+        }
+
+        private bool TryCreateCreature(
+            Vector3 position,
+            Vector3 surfaceNormal,
+            Vector3 facingDirection,
+            string runtimeName,
+            out InkCreatureRuntime createdCreature)
+        {
+            createdCreature = null;
+
+            if (!CanSpawnCreature())
+            {
+                return false;
+            }
+
+            Vector3 normal = NormalizeSurfaceNormal(surfaceNormal);
+            Vector3 planarForward = NormalizePlanarDirection(
+                facingDirection,
+                normal);
+            Quaternion creatureRotation = Quaternion.LookRotation(
+                planarForward,
+                normal);
+            createdCreature = Instantiate(
+                inkCreaturePrefab,
+                position,
+                creatureRotation);
+            createdCreature.name = runtimeName;
+
+            if (!createdCreature.Initialize(
+                    this,
+                    config,
+                    lekebacakDefinition,
+                    position))
+            {
+                Destroy(createdCreature.gameObject);
+                createdCreature = null;
+                return false;
+            }
+
+            WatercolorInkReaction creatureReaction =
+                createdCreature.GetComponent<WatercolorInkReaction>();
+            creatureReaction?.Configure(config);
+            activeCreatures.Add(createdCreature);
+            activeCreatureCount = activeCreatures.Count;
+            return true;
+        }
+
+        private bool TryFindSpawnGround(
+            Vector3 requestedPoint,
+            out Vector3 point,
+            out Vector3 normal)
+        {
+            Vector3 origin = requestedPoint +
+                Vector3.up * config.GroundProbeHeight;
+            int count = Physics.RaycastNonAlloc(
+                origin,
+                Vector3.down,
+                spawnGroundHits,
+                config.GroundProbeHeight + config.GroundProbeDistance,
+                navigationMask,
+                QueryTriggerInteraction.Ignore);
+            float nearestDistance = float.PositiveInfinity;
+            RaycastHit bestHit = default;
+
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = spawnGroundHits[i];
+
+                if (hit.collider == null ||
+                    hit.distance >= nearestDistance ||
+                    Vector3.Angle(hit.normal, Vector3.up) >
+                    config.MaximumWalkableSlope)
+                {
+                    continue;
+                }
+
+                nearestDistance = hit.distance;
+                bestHit = hit;
+            }
+
+            if (bestHit.collider == null)
+            {
+                point = requestedPoint;
+                normal = Vector3.up;
+                return false;
+            }
+
+            point = bestHit.point;
+            normal = bestHit.normal.normalized;
+            return true;
+        }
+
         private void RefreshFigureCache()
         {
-            FigureMotor[] figures = UnityEngine.Object.FindObjectsByType<FigureMotor>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
+            FigureMotor[] figures =
+                Object.FindObjectsByType<FigureMotor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None);
             cachedFigures.Clear();
 
             for (int i = 0; i < figures.Length; i++)
@@ -294,6 +422,36 @@ namespace PaintedAlive.Paint.Ink
             }
 
             activeCreatureCount = activeCreatures.Count;
+        }
+
+        private static Vector3 NormalizeSurfaceNormal(Vector3 normal)
+        {
+            return normal.sqrMagnitude > 0.001f
+                ? normal.normalized
+                : Vector3.up;
+        }
+
+        private static Vector3 NormalizePlanarDirection(
+            Vector3 direction,
+            Vector3 normal)
+        {
+            Vector3 planar = Vector3.ProjectOnPlane(
+                direction,
+                normal).normalized;
+
+            if (planar.sqrMagnitude < 0.001f)
+            {
+                planar = Vector3.ProjectOnPlane(
+                    Vector3.forward,
+                    normal).normalized;
+            }
+
+            if (planar.sqrMagnitude < 0.001f)
+            {
+                planar = Vector3.right;
+            }
+
+            return planar;
         }
     }
 }

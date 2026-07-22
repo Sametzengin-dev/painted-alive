@@ -737,6 +737,7 @@ GameObject:
   m_Component:
   - component: {fileID: 98189353}
   - component: {fileID: 98189352}
+  - component: {fileID: 98189354}
   m_Layer: 0
   m_Name: '[PaintedAlive] Ink Manager'
   m_TagString: Untagged
@@ -783,6 +784,25 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &98189354
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 98189351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d52c69a680889c49bec5b97b9f1ee3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Combat.InkPounceCombatDirector
+  config: {fileID: 11400000, guid: 7ace78f9868482e4d8943a129510f42d, type: 2}
+  trackedCreatures: 0
+  activeAttacks: 0
+  totalAttacks: 0
+  totalHits: 0
+  totalMisses: 0
+  lastAttackResult: None
 --- !u!1 &112068012
 GameObject:
   m_ObjectHideFlags: 0
@@ -5509,6 +5529,8 @@ GameObject:
   - component: {fileID: 907953245}
   - component: {fileID: 907953244}
   - component: {fileID: 907953246}
+  - component: {fileID: 907953248}
+  - component: {fileID: 907953247}
   m_Layer: 7
   m_Name: Figure_Player
   m_TagString: Player
@@ -6325,6 +6347,36 @@ MonoBehaviour:
   lastExitReason: Not started
   currentPossessionDuration: 0
   movementBlocked: 0
+--- !u!114 &907953247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6784144322c685844858a330db8cbe89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Combat.FigureInkFootStainStatus
+  config: {fileID: 11400000, guid: 7ace78f9868482e4d8943a129510f42d, type: 2}
+  stackCount: 0
+  remainingDuration: 0
+  footprintsPlaced: 0
+--- !u!114 &907953248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d435af706c3c314d8777db10d466d09, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Combat.InkPossessionAttackInput
+  possessionController: {fileID: 907953246}
+  lastInputResult: Not used
 --- !u!1 &919058481
 GameObject:
   m_ObjectHideFlags: 0

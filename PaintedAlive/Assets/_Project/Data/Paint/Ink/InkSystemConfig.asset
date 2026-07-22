@@ -27,7 +27,7 @@ MonoBehaviour:
   maximumWalkableSlope: 48
   patrolRadius: 1.8
   contactDistance: 0.72
-  clarityExposurePerContact: 1.4
+  clarityExposurePerContact: 0
   contactCooldown: 1.1
   surfaceExpansionPerSecond: 0.5
   creatureWaterGainPerSecond: 0.65
