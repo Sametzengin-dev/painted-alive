@@ -235,6 +235,7 @@ GameObject:
   - component: {fileID: 952573643127884971}
   - component: {fileID: 5473406218980615821}
   - component: {fileID: 6826495303609231795}
+  - component: {fileID: 3469548156296807052}
   m_Layer: 0
   m_Name: Lekebacak
   m_TagString: Untagged
@@ -389,6 +390,41 @@ MonoBehaviour:
   minimumTargetDistance: 6
   cloaked: 0
   nextCloakTime: 0
+--- !u!114 &3469548156296807052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3663402312123467772}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 759800af132c24e4aa8beea38a8686b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Commands.InkCreatureCommandAgent
+  creature: {fileID: 0}
+  runnerSpeed: 3.25
+  bulwarkSpeed: 2.15
+  ambusherSpeed: 3.55
+  turnSpeed: 420
+  arrivalRadius: 0.55
+  groundProbeHeight: 1.8
+  groundProbeDistance: 3.5
+  surfaceOffset: 0.08
+  obstacleProbeRadius: 0.22
+  obstacleProbeDistance: 0.75
+  navigationMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  bulwarkTriggerRadius: 6.5
+  ambusherTriggerRadius: 5.2
+  maximumHoldDuration: 18
+  commandRole: 0
+  commandState: 0
+  commandPoint: {x: 0, y: 0, z: 0}
+  commandNormal: {x: 0, y: 1, z: 0}
+  commandSequence: 0
+  lastResult: Autonomous
 --- !u!1 &3943586299293897747
 GameObject:
   m_ObjectHideFlags: 0

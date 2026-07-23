@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68ef393796d8e214db0bac1a449915e0, type: 3}
+  m_Name: M25_InkStainSabotageConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.StainSabotage.InkStainSabotageConfig
+  interactionRange: 3.6
+  aimAssistRadius: 0.24
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  maximumComplexity: 3
+  holdDuration: 1.15
+  sabotageDuration: 4.25
+  reuseCooldown: 1.25
+  lowPulseColor: {r: 0.08, g: 0.9, b: 0.72, a: 1}
+  highPulseColor: {r: 0.95, g: 0.12, b: 0.82, a: 1}
+  pulseSpeed: 9
+  scalePulse: 0.055
