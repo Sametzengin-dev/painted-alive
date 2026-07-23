@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e053d7e458a8f29458c7b41fb2671529, type: 3}
+  m_Name: InkLoadout_Kabuklu
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.GlyphLoadouts.InkGlyphLoadoutDefinition
+  loadoutId: 1
+  displayName: Kabuklu
+  shortDescription: "G\xF6z + Ayak + Kabuk"
+  creatureDefinition: {fileID: 11400000, guid: d75fcf4e329cedc49aced38977758041, type: 2}
+  pigmentCost: 48
+  complexityCost: 4
+  accentColor: {r: 0.12, g: 0.68, b: 0.78, a: 1}

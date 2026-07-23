@@ -58,8 +58,13 @@ namespace PaintedAlive.Paint.Ink
                 return false;
             }
 
+            InkGlyphType resolvedType =
+                glyphType != InkGlyphType.Shell &&
+                creature.HasGlyph(InkGlyphType.Shell)
+                    ? InkGlyphType.Shell
+                    : glyphType;
             bool applied = creature.TryDamageGlyph(
-                glyphType,
+                resolvedType,
                 damage,
                 out glyphDisabled,
                 out remainingDurability);

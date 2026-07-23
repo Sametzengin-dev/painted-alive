@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using PaintedAlive.Paint.Ink.Economy;
+using PaintedAlive.Paint.Ink.GlyphLoadouts;
 using UnityEngine;
 
 namespace PaintedAlive.Paint.Ink.Lifecycle
@@ -29,6 +31,9 @@ namespace PaintedAlive.Paint.Ink.Lifecycle
         private InkCreatureRuntime foundingCreature;
 
         [SerializeField]
+        private InkCreatureDefinition spawnDefinition;
+
+        [SerializeField]
         private int totalChildrenSpawned;
 
         [SerializeField]
@@ -46,6 +51,7 @@ namespace PaintedAlive.Paint.Ink.Lifecycle
 
         public InkSurface Surface => inkSurface;
         public InkCreatureRuntime FoundingCreature => foundingCreature;
+        public InkCreatureDefinition SpawnDefinition => spawnDefinition;
         public int ActiveChildCount => CountActiveChildren();
         public int TotalChildrenSpawned => totalChildrenSpawned;
         public bool SpawnTelegraphActive => spawnTelegraphActive;
@@ -78,12 +84,19 @@ namespace PaintedAlive.Paint.Ink.Lifecycle
             float now = Time.time;
             RemoveDestroyedChildren();
             manager ??= InkSystemManager.ActiveInstance;
+            InkPainterEconomy economy = InkPainterEconomy.ActiveInstance;
+            int spawnComplexity =
+                InkGlyphComplexityUtility.GetDefinitionCost(
+                    spawnDefinition);
             bool hasLocalCapacity =
                 activeChildren.Count < config.MaximumActiveChildren;
             bool hasGlobalCapacity = manager != null &&
                 manager.ActiveCreatureCount < manager.CreatureLimit;
+            bool hasComplexityCapacity = economy == null ||
+                economy.CanAddCreature(spawnComplexity);
             bool shouldTelegraph = hasLocalCapacity &&
                 hasGlobalCapacity &&
+                hasComplexityCapacity &&
                 now >= nextSpawnTime - config.SpawnTelegraphDuration;
             SetTelegraph(shouldTelegraph, now);
 
@@ -105,15 +118,27 @@ namespace PaintedAlive.Paint.Ink.Lifecycle
                 return;
             }
 
+            if (economy != null &&
+                !economy.CanAddCreature(spawnComplexity))
+            {
+                DelayBlockedSpawn("Ink complexity budget reached", now);
+                return;
+            }
+
             Vector3 direction = BuildSpawnDirection();
 
-            if (!manager.TrySpawnLekebacakFromNest(
+            if (!manager.TrySpawnCreatureFromNest(
                     inkSurface,
+                    spawnDefinition,
                     direction,
                     config.SpawnRadius,
                     out InkCreatureRuntime child))
             {
-                DelayBlockedSpawn("No valid nest spawn point", now);
+                string reason = string.IsNullOrWhiteSpace(
+                    manager.LastSpawnRejection)
+                    ? "No valid nest spawn point"
+                    : manager.LastSpawnRejection;
+                DelayBlockedSpawn(reason, now);
                 return;
             }
 
@@ -140,6 +165,11 @@ namespace PaintedAlive.Paint.Ink.Lifecycle
         {
             manager = systemManager;
             foundingCreature = initialCreature;
+            spawnDefinition = initialCreature != null
+                ? initialCreature.Definition
+                : manager != null
+                    ? manager.LekebacakDefinition
+                    : null;
             activeChildren.Clear();
             totalChildrenSpawned = 0;
             initialized = config != null && inkSurface != null;

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2789f6805b709842a3061dd610c98c9, type: 3}
+  m_Name: InkNestLifecycleConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Lifecycle.InkNestLifecycleConfig
+  firstSpawnDelay: 6
+  spawnInterval: 12
+  spawnTelegraphDuration: 1.25
+  blockedRetryDelay: 1.5
+  maximumActiveChildren: 2
+  spawnRadius: 0.55
+  tipDuration: 0.45
+  tippedLingerDuration: 1.3
+  dissolveDuration: 0.75
+  tipAngle: 105
+  dissolveSinkDistance: 0.12

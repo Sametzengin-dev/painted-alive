@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 9067722387292828997}
   - component: {fileID: 811732774949899225}
   - component: {fileID: 839599868321071941}
+  - component: {fileID: 4324302018681517554}
   m_Layer: 0
   m_Name: InkSurface
   m_TagString: Untagged
@@ -164,3 +165,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.InkSurfaceSpongeSource
   inkSurface: {fileID: 9067722387292828997}
   inkColor: {r: 0.015, g: 0.01, b: 0.025, a: 1}
+--- !u!114 &4324302018681517554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6668244568918574249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5d3d37a1f16c504b88d0a919232306a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Lifecycle.InkNestSpawner
+  inkSurface: {fileID: 9067722387292828997}
+  surfaceRenderer: {fileID: 1097415895607158551}
+  config: {fileID: 11400000, guid: dd3e63ecb205f0a4489cd759265d4284, type: 2}
+  foundingCreature: {fileID: 0}
+  totalChildrenSpawned: 0
+  nextSpawnTime: 0
+  spawnTelegraphActive: 0
+  lastSpawnResult: Not initialized

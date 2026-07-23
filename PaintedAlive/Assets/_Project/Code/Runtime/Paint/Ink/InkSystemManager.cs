@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using PaintedAlive.Figures;
+using PaintedAlive.Paint.Ink.Economy;
+using PaintedAlive.Paint.Ink.GlyphLoadouts;
 using PaintedAlive.Paint.Ink.Lifecycle;
 using UnityEngine;
 
@@ -45,6 +47,9 @@ namespace PaintedAlive.Paint.Ink
         [SerializeField]
         private int cachedFigureCount;
 
+        [SerializeField]
+        private string lastSpawnRejection = "None";
+
         private float accumulatedSimulationTime;
         private float nextFigureDiscoveryTime;
 
@@ -59,6 +64,7 @@ namespace PaintedAlive.Paint.Ink
         public int CreatureLimit => config != null
             ? config.MaximumConcurrentCreatures
             : 0;
+        public string LastSpawnRejection => lastSpawnRejection;
 
         [RuntimeInitializeOnLoadMethod(
             RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -157,10 +163,43 @@ namespace PaintedAlive.Paint.Ink
             out InkSurface createdSurface,
             out InkCreatureRuntime createdCreature)
         {
+            return TrySpawnCreature(
+                lekebacakDefinition,
+                surfacePoint,
+                surfaceNormal,
+                facingDirection,
+                out createdSurface,
+                out createdCreature);
+        }
+
+        public bool TrySpawnCreature(
+            InkCreatureDefinition creatureDefinition,
+            Vector3 surfacePoint,
+            Vector3 surfaceNormal,
+            Vector3 facingDirection,
+            out InkSurface createdSurface,
+            out InkCreatureRuntime createdCreature)
+        {
             createdSurface = null;
             createdCreature = null;
+            InkCreatureDefinition definition =
+                creatureDefinition != null
+                    ? creatureDefinition
+                    : lekebacakDefinition;
+            int creatureComplexity =
+                InkGlyphComplexityUtility.GetDefinitionCost(
+                    definition,
+                    config != null ? 2 : 0);
+            InkPainterEconomy economy = InkPainterEconomy.ActiveInstance;
 
-            if (!CanSpawnCreature())
+            if (economy != null &&
+                !economy.CanCreateNest(creatureComplexity))
+            {
+                lastSpawnRejection = "Ink complexity budget full";
+                return false;
+            }
+
+            if (!CanSpawnCreature(creatureComplexity))
             {
                 return false;
             }
@@ -191,10 +230,13 @@ namespace PaintedAlive.Paint.Ink
                 surfacePoint + normal * config.SurfaceOffset;
 
             if (!TryCreateCreature(
+                    definition,
                     creaturePosition,
                     normal,
                     planarForward,
-                    "Lekebacak_Runtime",
+                    definition != null
+                        ? definition.DisplayName + "_Runtime"
+                        : "InkCreature_Runtime",
                     out createdCreature))
             {
                 Destroy(createdSurface.gameObject);
@@ -205,6 +247,7 @@ namespace PaintedAlive.Paint.Ink
             InkNestSpawner nest =
                 createdSurface.GetComponent<InkNestSpawner>();
             nest?.Initialize(this, createdCreature);
+            lastSpawnRejection = "None";
             return true;
         }
 
@@ -214,11 +257,36 @@ namespace PaintedAlive.Paint.Ink
             float requestedRadius,
             out InkCreatureRuntime createdCreature)
         {
-            createdCreature = null;
+            return TrySpawnCreatureFromNest(
+                nestSurface,
+                lekebacakDefinition,
+                outwardDirection,
+                requestedRadius,
+                out createdCreature);
+        }
 
-            if (nestSurface == null ||
-                !nestSurface.IsInitialized ||
-                !CanSpawnCreature())
+        public bool TrySpawnCreatureFromNest(
+            InkSurface nestSurface,
+            InkCreatureDefinition creatureDefinition,
+            Vector3 outwardDirection,
+            float requestedRadius,
+            out InkCreatureRuntime createdCreature)
+        {
+            createdCreature = null;
+            InkCreatureDefinition definition =
+                creatureDefinition != null
+                    ? creatureDefinition
+                    : lekebacakDefinition;
+            int creatureComplexity =
+                InkGlyphComplexityUtility.GetDefinitionCost(definition);
+
+            if (nestSurface == null || !nestSurface.IsInitialized)
+            {
+                lastSpawnRejection = "Nest surface invalid";
+                return false;
+            }
+
+            if (!CanSpawnCreature(creatureComplexity))
             {
                 return false;
             }
@@ -240,15 +308,26 @@ namespace PaintedAlive.Paint.Ink
                     out Vector3 groundedPoint,
                     out Vector3 groundedNormal))
             {
+                lastSpawnRejection = "No valid nest spawn point";
                 return false;
             }
 
-            return TryCreateCreature(
+            bool created = TryCreateCreature(
+                definition,
                 groundedPoint + groundedNormal * config.SurfaceOffset,
                 groundedNormal,
                 planarForward,
-                "Lekebacak_Runtime_Nest",
+                definition != null
+                    ? definition.DisplayName + "_Runtime_Nest"
+                    : "InkCreature_Runtime_Nest",
                 out createdCreature);
+
+            if (created)
+            {
+                lastSpawnRejection = "None";
+            }
+
+            return created;
         }
 
         public void UnregisterCreature(InkCreatureRuntime creature)
@@ -262,16 +341,36 @@ namespace PaintedAlive.Paint.Ink
             activeCreatureCount = activeCreatures.Count;
         }
 
-        private bool CanSpawnCreature()
+        private bool CanSpawnCreature(int requestedComplexity = 0)
         {
             RemoveDestroyedCreatures();
-            return isActiveAndEnabled &&
-                   config != null &&
-                   activeCreatures.Count <
-                   config.MaximumConcurrentCreatures;
+
+            if (!isActiveAndEnabled || config == null)
+            {
+                lastSpawnRejection = "Ink manager unavailable";
+                return false;
+            }
+
+            if (activeCreatures.Count >= config.MaximumConcurrentCreatures)
+            {
+                lastSpawnRejection = "Global creature limit reached";
+                return false;
+            }
+
+            InkPainterEconomy economy = InkPainterEconomy.ActiveInstance;
+
+            if (economy != null &&
+                !economy.CanAddCreature(requestedComplexity))
+            {
+                lastSpawnRejection = "Ink complexity budget full";
+                return false;
+            }
+
+            return true;
         }
 
         private bool TryCreateCreature(
+            InkCreatureDefinition creatureDefinition,
             Vector3 position,
             Vector3 surfaceNormal,
             Vector3 facingDirection,
@@ -280,7 +379,11 @@ namespace PaintedAlive.Paint.Ink
         {
             createdCreature = null;
 
-            if (!CanSpawnCreature())
+            int creatureComplexity =
+                InkGlyphComplexityUtility.GetDefinitionCost(
+                    creatureDefinition);
+
+            if (!CanSpawnCreature(creatureComplexity))
             {
                 return false;
             }
@@ -301,11 +404,14 @@ namespace PaintedAlive.Paint.Ink
             if (!createdCreature.Initialize(
                     this,
                     config,
-                    lekebacakDefinition,
+                    creatureDefinition != null
+                        ? creatureDefinition
+                        : lekebacakDefinition,
                     position))
             {
                 Destroy(createdCreature.gameObject);
                 createdCreature = null;
+                lastSpawnRejection = "Creature initialization failed";
                 return false;
             }
 
@@ -314,6 +420,7 @@ namespace PaintedAlive.Paint.Ink
             creatureReaction?.Configure(config);
             activeCreatures.Add(createdCreature);
             activeCreatureCount = activeCreatures.Count;
+            lastSpawnRejection = "None";
             return true;
         }
 

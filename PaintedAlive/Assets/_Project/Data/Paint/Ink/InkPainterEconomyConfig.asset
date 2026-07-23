@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c562607aaa0c2743beb5b345d1e3aa8, type: 3}
+  m_Name: InkPainterEconomyConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.Economy.InkPainterEconomyConfig
+  pigmentCapacity: 100
+  startingPigment: 100
+  regenerationPerSecond: 5
+  nestPlacementCost: 35
+  possessionDrainPerSecond: 3
+  maximumComplexity: 16
+  nestComplexity: 2
+  lekebacakComplexity: 2
+  complexityRefreshInterval: 0.2
+  minimumCastDuration: 0.65
+  placementCooldown: 1
+  maximumPlacementDistance: 35
+  maximumSurfaceAngle: 52
+  protectedFigureRadius: 1.15
+  minimumNestSpacing: 2.4
+  previewRadius: 0.9
