@@ -1,5 +1,8 @@
 using System;
 using PaintedAlive.Figures;
+using PaintedAlive.Figures.Tools;
+using PaintedAlive.Paint.Ink.Possession;
+using PaintedAlive.Paint.Ink.StainHijack;
 using PaintedAlive.Paint.Ink.StainSabotage;
 using PaintedAlive.Painters.Ink;
 using UnityEditor;
@@ -9,15 +12,17 @@ using UnityEngine.UI;
 
 namespace PaintedAlive.EditorTools
 {
-    public static class SetupInkStainSabotageMilestone
+    public static class SetupInkStainCreatureHijackMilestone
     {
         private const string ConfigPath =
-            "Assets/_Project/Data/Ink/M25_InkStainSabotageConfig.asset";
+            "Assets/_Project/Data/Ink/" +
+            "M26_StainCreatureHijackConfig.asset";
         private const string HudPanelName =
-            "M25_InkStainSabotagePanel";
+            "M26_StainCreatureHijackPanel";
 
         [MenuItem(
-            "Tools/Painted Alive/Milestones/25 - Setup Ink Stain Sabotage")]
+            "Tools/Painted Alive/Milestones/" +
+            "26 - Setup Stain Creature Hijack")]
         public static void Setup()
         {
             try
@@ -25,15 +30,17 @@ namespace PaintedAlive.EditorTools
                 if (Application.isPlaying)
                 {
                     throw new InvalidOperationException(
-                        "M25 Setup Play Mode dışında çalıştırılmalıdır.");
+                        "M26 Setup Play Mode dışında çalıştırılmalıdır.");
                 }
 
                 Prerequisites prerequisites =
                     ValidatePrerequisites();
-                InkStainSabotageConfig config =
+                InkStainHijackConfig config =
                     GetOrCreateConfig();
-                InkStainSabotageController controller =
-                    GetOrCreateController(prerequisites, config);
+                InkStainCreatureHijackController controller =
+                    GetOrCreateController(
+                        prerequisites,
+                        config);
                 HudReferences hud =
                     GetOrCreateHud(
                         prerequisites.Canvas,
@@ -49,10 +56,10 @@ namespace PaintedAlive.EditorTools
                 AssetDatabase.Refresh();
 
                 Debug.Log(
-                    "[M25 Setup] Tamamlandı. Leke hâlindeki Figür, " +
-                    "küçük Mürekkep yaratığına bakıp E basılı tutarak " +
-                    "sinyalini geçici bozar. Emir ve sahiplenme kopar; " +
-                    "yüksek karmaşıklıklı Kabuklu bağışıktır.");
+                    "[M26 Setup] Tamamlandı. Tam Leke hâlinde küçük " +
+                    "yaratığı önce M25 ile sabote et; E'yi bırakıp aynı " +
+                    "yaratığa yeniden E basılı tut. WASD/fare ile kısa " +
+                    "süre kontrol et, E ile erken çık.");
             }
             catch (Exception exception)
             {
@@ -61,115 +68,51 @@ namespace PaintedAlive.EditorTools
         }
 
         [MenuItem(
-            "Tools/Painted Alive/Milestones/25 - Diagnose Ink Stain Sabotage")]
+            "Tools/Painted Alive/Milestones/" +
+            "26 - Diagnose Stain Creature Hijack")]
         public static void Diagnose()
         {
-            InkStainSabotageController[] controllers =
+            InkStainCreatureHijackController[] controllers =
                 UnityEngine.Object.FindObjectsByType<
-                    InkStainSabotageController>(
+                    InkStainCreatureHijackController>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None);
-            InkStainSabotageHud[] huds =
+            InkStainCreatureHijackHud[] huds =
                 UnityEngine.Object.FindObjectsByType<
-                    InkStainSabotageHud>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None);
-            InkStainSabotageStatus[] statuses =
-                UnityEngine.Object.FindObjectsByType<
-                    InkStainSabotageStatus>(
+                    InkStainCreatureHijackHud>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None);
 
             Debug.Log(
-                "[M25 Diagnose] " +
+                "[M26 Diagnose] " +
                 $"Controllers={controllers.Length}, " +
                 $"HUDs={huds.Length}, " +
-                $"Statuses={statuses.Length}, " +
                 $"Playing={Application.isPlaying}");
 
             for (int i = 0; i < controllers.Length; i++)
             {
-                InkStainSabotageController controller =
+                InkStainCreatureHijackController controller =
                     controllers[i];
                 Debug.Log(
-                    "[M25 Diagnose Controller] " +
+                    "[M26 Diagnose Controller] " +
                     $"Path={GetHierarchyPath(controller.transform)}, " +
-                    $"StainRoleActive={controller.IsStainRoleActive}, " +
-                    $"Progress={controller.HoldProgress:0.00}, " +
-                    $"Successes={controller.SuccessfulSabotages}, " +
+                    $"StainRole={controller.IsStainRoleActive}, " +
+                    $"Hijacking={controller.IsHijacking}, " +
+                    $"Target={GetName(controller.CurrentTarget)}, " +
+                    $"Creature={GetName(controller.HijackedCreature)}, " +
+                    $"EntryArmed={controller.EntryArmed}, " +
+                    $"Entry={controller.EntryProgress:0.00}, " +
+                    $"Remaining={controller.RemainingSeconds:0.00}, " +
                     $"Result={controller.LastResult}",
                     controller);
-            }
-
-            for (int i = 0; i < statuses.Length; i++)
-            {
-                InkStainSabotageStatus status = statuses[i];
-                Debug.Log(
-                    "[M25 Diagnose Status] " +
-                    $"Path={GetHierarchyPath(status.transform)}, " +
-                    $"Active={status.IsSabotaged}, " +
-                    $"Remaining={status.RemainingSeconds:0.00}, " +
-                    $"Result={status.LastReason}",
-                    status);
-            }
-        }
-
-        [MenuItem(
-            "Tools/Painted Alive/Milestones/25 - Debug Set Figure To Stain")]
-        public static void DebugSetFigureToStain()
-        {
-            try
-            {
-                if (!Application.isPlaying)
-                {
-                    throw new InvalidOperationException(
-                        "Bu debug komutu yalnız Play Mode'da çalışır.");
-                }
-
-                FigureClarityState clarity =
-                    FindSingleClarityState();
-                clarity.ApplyPaintExposure(
-                    clarity.MaximumClarity + 100f,
-                    FigurePaintRegion.Torso);
-                Debug.Log(
-                    $"[M25 Debug] Figure level={clarity.CurrentLevel}.",
-                    clarity);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception);
-            }
-        }
-
-        [MenuItem(
-            "Tools/Painted Alive/Milestones/25 - Debug Restore Figure")]
-        public static void DebugRestoreFigure()
-        {
-            try
-            {
-                if (!Application.isPlaying)
-                {
-                    throw new InvalidOperationException(
-                        "Bu debug komutu yalnız Play Mode'da çalışır.");
-                }
-
-                FigureClarityState clarity =
-                    FindSingleClarityState();
-                clarity.ResetToFull();
-                Debug.Log(
-                    $"[M25 Debug] Figure level={clarity.CurrentLevel}.",
-                    clarity);
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception);
             }
         }
 
         private static Prerequisites ValidatePrerequisites()
         {
-            FigureMotor[] figures =
-                UnityEngine.Object.FindObjectsByType<FigureMotor>(
+            InkStainSabotageController[] sabotageControllers =
+                UnityEngine.Object.FindObjectsByType<
+                    InkStainSabotageController>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None);
             InkPainterRoleAuthority[] authorities =
@@ -178,55 +121,87 @@ namespace PaintedAlive.EditorTools
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None);
 
-            if (figures.Length != 1 || authorities.Length != 1)
+            if (sabotageControllers.Length != 1 ||
+                authorities.Length != 1)
             {
                 throw new InvalidOperationException(
-                    "M25 tek FigureMotor ve tek RoleAuthority bekliyor. " +
-                    $"Figures={figures.Length}, " +
+                    "M26 çalışan tek M25 SabotageController ve tek " +
+                    "RoleAuthority bekliyor. " +
+                    $"M25={sabotageControllers.Length}, " +
                     $"Authorities={authorities.Length}.");
             }
 
+            InkStainSabotageController sabotage =
+                sabotageControllers[0];
+            FigureMotor figure =
+                sabotage.GetComponent<FigureMotor>();
             FigureClarityState clarity =
-                figures[0].GetComponent<FigureClarityState>();
-            SerializedObject authorityObject =
-    new SerializedObject(authorities[0]);
-
-SerializedProperty figureCameraProperty =
-    authorityObject.FindProperty("figureCamera");
-
-Camera camera = figureCameraProperty != null
-    ? figureCameraProperty.objectReferenceValue as Camera
-    : null;
+                figure != null
+                    ? figure.GetComponent<FigureClarityState>()
+                    : null;
+            FigurePrimaryToolClarityGate clarityGate =
+                figure != null
+                    ? figure.GetComponent<
+                        FigurePrimaryToolClarityGate>()
+                    : null;
+            Camera figureCamera =
+                ResolveFigureCamera(authorities[0]);
             Canvas canvas =
                 UnityEngine.Object.FindFirstObjectByType<Canvas>(
                     FindObjectsInactive.Include);
 
-            if (clarity == null || camera == null || canvas == null)
+            if (figure == null ||
+                clarity == null ||
+                clarityGate == null ||
+                figureCamera == null ||
+                canvas == null)
             {
                 throw new InvalidOperationException(
-                    "M25 Figure üzerinde FigureClarityState, çocuk Camera " +
-                    "ve sahnede Canvas bekliyor. " +
+                    "M26 ön koşulları eksik. " +
+                    $"Figure={(figure != null)}, " +
                     $"Clarity={(clarity != null)}, " +
-                    $"Camera={(camera != null)}, " +
+                    $"M25.1Gate={(clarityGate != null)}, " +
+                    $"FigureCamera={(figureCamera != null)}, " +
                     $"Canvas={(canvas != null)}.");
             }
 
+            InkPossessionController painterPossession =
+                figure.GetComponent<InkPossessionController>();
             return new Prerequisites(
-                figures[0],
+                figure,
                 clarity,
-                camera,
+                figureCamera,
                 authorities[0],
+                sabotage,
+                painterPossession,
                 canvas);
         }
 
-        private static InkStainSabotageConfig GetOrCreateConfig()
+        private static Camera ResolveFigureCamera(
+            InkPainterRoleAuthority authority)
+        {
+            if (authority == null)
+            {
+                return null;
+            }
+
+            SerializedObject serialized =
+                new SerializedObject(authority);
+            SerializedProperty property =
+                serialized.FindProperty("figureCamera");
+            return property != null
+                ? property.objectReferenceValue as Camera
+                : null;
+        }
+
+        private static InkStainHijackConfig GetOrCreateConfig()
         {
             EnsureFolder("Assets/_Project");
             EnsureFolder("Assets/_Project/Data");
             EnsureFolder("Assets/_Project/Data/Ink");
-            InkStainSabotageConfig config =
+            InkStainHijackConfig config =
                 AssetDatabase.LoadAssetAtPath<
-                    InkStainSabotageConfig>(ConfigPath);
+                    InkStainHijackConfig>(ConfigPath);
 
             if (config != null)
             {
@@ -235,46 +210,49 @@ Camera camera = figureCameraProperty != null
 
             config =
                 ScriptableObject.CreateInstance<
-                    InkStainSabotageConfig>();
+                    InkStainHijackConfig>();
             AssetDatabase.CreateAsset(config, ConfigPath);
             return config;
         }
 
-        private static InkStainSabotageController
+        private static InkStainCreatureHijackController
             GetOrCreateController(
                 Prerequisites prerequisites,
-                InkStainSabotageConfig config)
+                InkStainHijackConfig config)
         {
-            InkStainSabotageController[] existing =
+            InkStainCreatureHijackController[] existing =
                 UnityEngine.Object.FindObjectsByType<
-                    InkStainSabotageController>(
+                    InkStainCreatureHijackController>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None);
 
             if (existing.Length > 1)
             {
                 throw new InvalidOperationException(
-                    "Sahnede birden fazla M25 SabotageController var. " +
+                    "Sahnede birden fazla M26 HijackController var. " +
                     "Kopyaları temizleyip Setup'ı yeniden çalıştır.");
             }
 
-            InkStainSabotageController controller =
+            InkStainCreatureHijackController controller =
                 existing.Length == 1
                     ? existing[0]
-                    : Undo.AddComponent<InkStainSabotageController>(
+                    : Undo.AddComponent<
+                        InkStainCreatureHijackController>(
                         prerequisites.Figure.gameObject);
             controller.Configure(
                 prerequisites.Clarity,
                 prerequisites.Figure,
                 prerequisites.Camera,
                 prerequisites.RoleAuthority,
+                prerequisites.Sabotage,
+                prerequisites.PainterPossession,
                 config);
             return controller;
         }
 
         private static HudReferences GetOrCreateHud(
             Canvas canvas,
-            InkStainSabotageController controller)
+            InkStainCreatureHijackController controller)
         {
             Transform existing =
                 canvas.transform.Find(HudPanelName);
@@ -293,7 +271,7 @@ Camera camera = figureCameraProperty != null
                     typeof(Image));
                 Undo.RegisterCreatedObjectUndo(
                     panel,
-                    "Create M25 Ink Stain Sabotage HUD");
+                    "Create M26 Stain Creature Hijack HUD");
                 panel.transform.SetParent(canvas.transform, false);
             }
 
@@ -302,22 +280,25 @@ Camera camera = figureCameraProperty != null
             rect.anchorMin = new Vector2(0.5f, 0f);
             rect.anchorMax = new Vector2(0.5f, 0f);
             rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = new Vector2(0f, 158f);
-            rect.sizeDelta = new Vector2(430f, 68f);
+            rect.anchoredPosition = new Vector2(0f, 234f);
+            rect.sizeDelta = new Vector2(430f, 66f);
             Image background = panel.GetComponent<Image>();
             background.color =
-                new Color(0.015f, 0.095f, 0.08f, 0.9f);
+                new Color(0.08f, 0.015f, 0.095f, 0.91f);
             background.raycastTarget = false;
 
             Text text = GetOrCreateText(rect);
             Image progress = GetOrCreateProgress(rect);
-            InkStainSabotageHud hud =
-                controller.GetComponent<InkStainSabotageHud>();
+            InkStainCreatureHijackHud hud =
+                controller.GetComponent<
+                    InkStainCreatureHijackHud>();
 
             if (hud == null)
             {
-                hud = Undo.AddComponent<InkStainSabotageHud>(
-                    controller.gameObject);
+                hud =
+                    Undo.AddComponent<
+                        InkStainCreatureHijackHud>(
+                        controller.gameObject);
             }
 
             hud.Configure(controller, panel, text, progress);
@@ -325,23 +306,22 @@ Camera camera = figureCameraProperty != null
             return new HudReferences(hud, panel);
         }
 
-        private static Text GetOrCreateText(RectTransform parent)
+        private static Text GetOrCreateText(
+            RectTransform parent)
         {
-            const string name = "SabotageText";
+            const string name = "HijackText";
             Transform existing = parent.Find(name);
-            GameObject target;
+            GameObject target =
+                existing != null
+                    ? existing.gameObject
+                    : new GameObject(
+                        name,
+                        typeof(RectTransform),
+                        typeof(CanvasRenderer),
+                        typeof(Text));
 
-            if (existing != null)
+            if (existing == null)
             {
-                target = existing.gameObject;
-            }
-            else
-            {
-                target = new GameObject(
-                    name,
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Text));
                 target.transform.SetParent(parent, false);
             }
 
@@ -349,7 +329,7 @@ Camera camera = figureCameraProperty != null
                 (RectTransform)target.transform;
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
-            rect.offsetMin = new Vector2(12f, 12f);
+            rect.offsetMin = new Vector2(12f, 11f);
             rect.offsetMax = new Vector2(-12f, -8f);
             Text text = target.GetComponent<Text>();
             text.font =
@@ -359,7 +339,7 @@ Camera camera = figureCameraProperty != null
             text.fontStyle = FontStyle.Bold;
             text.alignment = TextAnchor.MiddleCenter;
             text.color =
-                new Color(0.78f, 1f, 0.94f, 1f);
+                new Color(1f, 0.82f, 0.96f, 1f);
             text.raycastTarget = false;
             text.horizontalOverflow =
                 HorizontalWrapMode.Wrap;
@@ -371,21 +351,19 @@ Camera camera = figureCameraProperty != null
         private static Image GetOrCreateProgress(
             RectTransform parent)
         {
-            const string name = "SabotageProgress";
+            const string name = "HijackProgress";
             Transform existing = parent.Find(name);
-            GameObject target;
+            GameObject target =
+                existing != null
+                    ? existing.gameObject
+                    : new GameObject(
+                        name,
+                        typeof(RectTransform),
+                        typeof(CanvasRenderer),
+                        typeof(Image));
 
-            if (existing != null)
+            if (existing == null)
             {
-                target = existing.gameObject;
-            }
-            else
-            {
-                target = new GameObject(
-                    name,
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(Image));
                 target.transform.SetParent(parent, false);
             }
 
@@ -394,11 +372,9 @@ Camera camera = figureCameraProperty != null
             rect.anchorMin = new Vector2(0f, 0f);
             rect.anchorMax = new Vector2(1f, 0f);
             rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = new Vector2(0f, 0f);
+            rect.anchoredPosition = Vector2.zero;
             rect.sizeDelta = new Vector2(-18f, 5f);
             Image image = target.GetComponent<Image>();
-            image.color =
-                new Color(0.12f, 0.95f, 0.75f, 0.95f);
             image.type = Image.Type.Filled;
             image.fillMethod = Image.FillMethod.Horizontal;
             image.fillOrigin = 0;
@@ -406,39 +382,6 @@ Camera camera = figureCameraProperty != null
             image.raycastTarget = false;
             return image;
         }
-
-        private static FigureClarityState FindSingleClarityState()
-{
-    InkStainSabotageController[] controllers =
-        UnityEngine.Object.FindObjectsByType<InkStainSabotageController>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None);
-
-    if (controllers.Length != 1)
-    {
-        throw new InvalidOperationException(
-            "Debug komutu tek M25 InkStainSabotageController bekliyor. " +
-            $"Count={controllers.Length}.");
-    }
-
-    FigureClarityState clarity =
-        controllers[0].GetComponent<FigureClarityState>();
-
-    if (clarity == null)
-    {
-        clarity =
-            controllers[0].GetComponentInParent<FigureClarityState>();
-    }
-
-    if (clarity == null)
-    {
-        throw new InvalidOperationException(
-            "M25 InkStainSabotageController ile bağlantılı " +
-            "FigureClarityState bulunamadı.");
-    }
-
-    return clarity;
-}
 
         private static void EnsureFolder(string path)
         {
@@ -460,7 +403,8 @@ Camera camera = figureCameraProperty != null
             AssetDatabase.CreateFolder(parent, name);
         }
 
-        private static string GetHierarchyPath(Transform target)
+        private static string GetHierarchyPath(
+            Transform target)
         {
             if (target == null)
             {
@@ -479,6 +423,12 @@ Camera camera = figureCameraProperty != null
             return path;
         }
 
+        private static string GetName(
+            UnityEngine.Object target)
+        {
+            return target != null ? target.name : "None";
+        }
+
         private readonly struct Prerequisites
         {
             public Prerequisites(
@@ -486,12 +436,16 @@ Camera camera = figureCameraProperty != null
                 FigureClarityState clarity,
                 Camera camera,
                 InkPainterRoleAuthority roleAuthority,
+                InkStainSabotageController sabotage,
+                InkPossessionController painterPossession,
                 Canvas canvas)
             {
                 Figure = figure;
                 Clarity = clarity;
                 Camera = camera;
                 RoleAuthority = roleAuthority;
+                Sabotage = sabotage;
+                PainterPossession = painterPossession;
                 Canvas = canvas;
             }
 
@@ -499,20 +453,22 @@ Camera camera = figureCameraProperty != null
             public FigureClarityState Clarity { get; }
             public Camera Camera { get; }
             public InkPainterRoleAuthority RoleAuthority { get; }
+            public InkStainSabotageController Sabotage { get; }
+            public InkPossessionController PainterPossession { get; }
             public Canvas Canvas { get; }
         }
 
         private readonly struct HudReferences
         {
             public HudReferences(
-                InkStainSabotageHud hud,
+                InkStainCreatureHijackHud hud,
                 GameObject panel)
             {
                 Hud = hud;
                 Panel = panel;
             }
 
-            public InkStainSabotageHud Hud { get; }
+            public InkStainCreatureHijackHud Hud { get; }
             public GameObject Panel { get; }
         }
     }

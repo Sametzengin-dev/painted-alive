@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d24591017ee6bc3438fd3e1653e7a490, type: 3}
+  m_Name: M26_StainCreatureHijackConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.Ink.StainHijack.InkStainHijackConfig
+  interactionRange: 4.25
+  aimAssistRadius: 0.18
+  entryHoldDuration: 0.45
+  maximumComplexity: 3
+  targetMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  maximumHijackDuration: 3.75
+  movementSpeedMultiplier: 1.05
+  turnSpeedDegrees: 540
+  mouseSensitivity: 0.085
+  cameraDistance: 2.35
+  cameraHeight: 0.75
+  minimumPitch: -25
+  maximumPitch: 55
+  cameraFollowSharpness: 18
+  cameraCollisionRadius: 0.18
+  navigationMask:
+    serializedVersion: 2
+    m_Bits: 4294967291
+  groundProbeHeight: 1.8
+  groundProbeDistance: 3.5
+  surfaceOffset: 0.08
+  maximumWalkableSlope: 52
+  obstacleProbeRadius: 0.22
+  obstacleProbeDistance: 0.72

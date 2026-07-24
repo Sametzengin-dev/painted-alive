@@ -208,77 +208,26 @@ namespace PaintedAlive.Paint.Ink.StainSabotage
                 return null;
             }
 
-            Transform cameraTransform = figureCamera.transform;
-            int hitCount = Physics.SphereCastNonAlloc(
-                cameraTransform.position,
+            return InkStainTargetingUtility.FindBestTarget(
+                figureCamera,
+                figureMotor != null
+                    ? figureMotor.transform
+                    : transform,
                 config.AimAssistRadius,
-                cameraTransform.forward,
-                targetHits,
                 config.InteractionRange,
                 config.TargetMask,
-                QueryTriggerInteraction.Collide);
-            InkCreatureRuntime best = null;
-            float nearestDistance = float.PositiveInfinity;
-
-            for (int i = 0; i < hitCount; i++)
-            {
-                RaycastHit hit = targetHits[i];
-                Collider hitCollider = hit.collider;
-                InkCreatureRuntime candidate =
-                    hitCollider != null
-                        ? hitCollider.GetComponentInParent<
-                            InkCreatureRuntime>()
-                        : null;
-
-                if (!IsValidTarget(candidate) ||
-                    hit.distance >= nearestDistance)
-                {
-                    continue;
-                }
-
-                best = candidate;
-                nearestDistance = hit.distance;
-            }
-
-            return best;
+                targetHits,
+                config.MaximumComplexity,
+                InkStainTargetMode.VulnerableForSabotage);
         }
 
         private bool IsValidTarget(InkCreatureRuntime candidate)
         {
-            if (candidate == null ||
-                !candidate.gameObject.activeInHierarchy ||
-                !candidate.IsInitialized ||
-                candidate.IsFixed ||
-                candidate.IsPinned)
-            {
-                return false;
-            }
-
-            int complexity =
-                InkGlyphComplexityUtility.GetCreatureCost(
+            return config != null &&
+                InkStainTargetingUtility.IsValidTarget(
                     candidate,
-                    config != null
-                        ? config.MaximumComplexity + 1
-                        : 4);
-
-            if (config == null ||
-                complexity > config.MaximumComplexity)
-            {
-                return false;
-            }
-
-            InkStainSabotageStatus sabotage =
-                candidate.GetComponent<InkStainSabotageStatus>();
-
-            if (sabotage != null && sabotage.IsSabotaged)
-            {
-                return false;
-            }
-
-            InkCommandDisruptionStatus disruption =
-                candidate.GetComponent<InkCommandDisruptionStatus>();
-
-            return disruption == null || !disruption.IsDisrupted;
+                    config.MaximumComplexity,
+                    InkStainTargetMode.VulnerableForSabotage);
         }
 
         private static string GetTargetLabel(
