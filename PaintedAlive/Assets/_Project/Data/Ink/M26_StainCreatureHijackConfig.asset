@@ -23,6 +23,8 @@ MonoBehaviour:
   movementSpeedMultiplier: 1.05
   turnSpeedDegrees: 540
   mouseSensitivity: 0.085
+  exitRecoveryDelay: 0.5
+  reentryCooldown: 2.25
   cameraDistance: 2.35
   cameraHeight: 0.75
   minimumPitch: -25
@@ -38,3 +40,11 @@ MonoBehaviour:
   maximumWalkableSlope: 52
   obstacleProbeRadius: 0.22
   obstacleProbeDistance: 0.72
+  maximumGroundDropBeforeCliff: 0.75
+  minimumCliffForwardSpeed: 1.25
+  cliffForwardMomentumMultiplier: 0.9
+  cliffFallGravity: 16
+  cliffSpinDegreesPerSecond: 240
+  cliffFallDuration: 1.35
+  cliffDissolveDuration: 0.4
+  safeFigureExitSurfaceOffset: 0.18

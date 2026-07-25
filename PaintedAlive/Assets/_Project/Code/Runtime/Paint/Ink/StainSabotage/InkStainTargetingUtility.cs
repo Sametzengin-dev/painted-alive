@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using PaintedAlive.Paint.Ink.Counterplay;
 using PaintedAlive.Paint.Ink.GlyphLoadouts;
+using PaintedAlive.Paint.Ink.StainHijack;
 using UnityEngine;
 
 namespace PaintedAlive.Paint.Ink.StainSabotage
@@ -89,6 +90,13 @@ namespace PaintedAlive.Paint.Ink.StainSabotage
 
             InkStainSabotageStatus sabotage =
                 candidate.GetComponent<InkStainSabotageStatus>();
+            InkStainHijackRecoveryStatus recovery =
+                candidate.GetComponent<InkStainHijackRecoveryStatus>();
+
+            if (recovery != null && recovery.IsOnCooldown)
+            {
+                return false;
+            }
 
             if (mode == InkStainTargetMode.SabotagedForHijack)
             {

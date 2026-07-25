@@ -36,6 +36,13 @@ namespace PaintedAlive.Paint.Ink.StainHijack
         [SerializeField, Range(0.01f, 0.5f)]
         private float mouseSensitivity = 0.085f;
 
+        [Header("Exit Recovery")]
+        [SerializeField, Range(0.1f, 2f)]
+        private float exitRecoveryDelay = 0.5f;
+
+        [SerializeField, Min(0.25f)]
+        private float reentryCooldown = 2.25f;
+
         [Header("Camera")]
         [SerializeField, Min(0.5f)]
         private float cameraDistance = 2.35f;
@@ -77,6 +84,31 @@ namespace PaintedAlive.Paint.Ink.StainHijack
         [SerializeField, Min(0.1f)]
         private float obstacleProbeDistance = 0.72f;
 
+        [Header("Cliff Fall")]
+        [SerializeField, Min(0.1f)]
+        private float maximumGroundDropBeforeCliff = 0.75f;
+
+        [SerializeField, Min(0.1f)]
+        private float minimumCliffForwardSpeed = 1.25f;
+
+        [SerializeField, Range(0.25f, 2f)]
+        private float cliffForwardMomentumMultiplier = 0.9f;
+
+        [SerializeField, Min(1f)]
+        private float cliffFallGravity = 16f;
+
+        [SerializeField, Min(0f)]
+        private float cliffSpinDegreesPerSecond = 240f;
+
+        [SerializeField, Min(0.25f)]
+        private float cliffFallDuration = 1.35f;
+
+        [SerializeField, Min(0.05f)]
+        private float cliffDissolveDuration = 0.4f;
+
+        [SerializeField, Min(0.01f)]
+        private float safeFigureExitSurfaceOffset = 0.18f;
+
         public float InteractionRange => interactionRange;
         public float AimAssistRadius => aimAssistRadius;
         public float EntryHoldDuration => entryHoldDuration;
@@ -86,6 +118,14 @@ namespace PaintedAlive.Paint.Ink.StainHijack
         public float MovementSpeedMultiplier => movementSpeedMultiplier;
         public float TurnSpeedDegrees => turnSpeedDegrees;
         public float MouseSensitivity => mouseSensitivity;
+        public float ExitRecoveryDelay =>
+            exitRecoveryDelay >= 0.1f
+                ? exitRecoveryDelay
+                : 0.5f;
+        public float ReentryCooldown =>
+            reentryCooldown >= 0.25f
+                ? reentryCooldown
+                : 2.25f;
         public float CameraDistance => cameraDistance;
         public float CameraHeight => cameraHeight;
         public float MinimumPitch => minimumPitch;
@@ -99,6 +139,38 @@ namespace PaintedAlive.Paint.Ink.StainHijack
         public float MaximumWalkableSlope => maximumWalkableSlope;
         public float ObstacleProbeRadius => obstacleProbeRadius;
         public float ObstacleProbeDistance => obstacleProbeDistance;
+        public float MaximumGroundDropBeforeCliff =>
+            maximumGroundDropBeforeCliff >= 0.1f
+                ? maximumGroundDropBeforeCliff
+                : 0.75f;
+        public float MinimumCliffForwardSpeed =>
+            minimumCliffForwardSpeed >= 0.1f
+                ? minimumCliffForwardSpeed
+                : 1.25f;
+        public float CliffForwardMomentumMultiplier =>
+            cliffForwardMomentumMultiplier >= 0.25f
+                ? cliffForwardMomentumMultiplier
+                : 0.9f;
+        public float CliffFallGravity =>
+            cliffFallGravity >= 1f
+                ? cliffFallGravity
+                : 16f;
+        public float CliffSpinDegreesPerSecond =>
+            cliffSpinDegreesPerSecond >= 0f
+                ? cliffSpinDegreesPerSecond
+                : 240f;
+        public float CliffFallDuration =>
+            cliffFallDuration >= 0.25f
+                ? cliffFallDuration
+                : 1.35f;
+        public float CliffDissolveDuration =>
+            cliffDissolveDuration >= 0.05f
+                ? cliffDissolveDuration
+                : 0.4f;
+        public float SafeFigureExitSurfaceOffset =>
+            safeFigureExitSurfaceOffset >= 0.01f
+                ? safeFigureExitSurfaceOffset
+                : 0.18f;
 
         private void OnValidate()
         {
@@ -117,6 +189,13 @@ namespace PaintedAlive.Paint.Ink.StainHijack
                 mouseSensitivity,
                 0.01f,
                 0.5f);
+            exitRecoveryDelay = Mathf.Clamp(
+                exitRecoveryDelay,
+                0.1f,
+                2f);
+            reentryCooldown = Mathf.Max(
+                0.25f,
+                reentryCooldown);
             cameraDistance = Mathf.Max(0.5f, cameraDistance);
             cameraHeight = Mathf.Max(0f, cameraHeight);
             minimumPitch = Mathf.Clamp(minimumPitch, -80f, 0f);
@@ -137,6 +216,23 @@ namespace PaintedAlive.Paint.Ink.StainHijack
                 Mathf.Max(0.05f, obstacleProbeRadius);
             obstacleProbeDistance =
                 Mathf.Max(0.1f, obstacleProbeDistance);
+            maximumGroundDropBeforeCliff =
+                Mathf.Max(0.1f, maximumGroundDropBeforeCliff);
+            minimumCliffForwardSpeed =
+                Mathf.Max(0.1f, minimumCliffForwardSpeed);
+            cliffForwardMomentumMultiplier = Mathf.Clamp(
+                cliffForwardMomentumMultiplier,
+                0.25f,
+                2f);
+            cliffFallGravity = Mathf.Max(1f, cliffFallGravity);
+            cliffSpinDegreesPerSecond =
+                Mathf.Max(0f, cliffSpinDegreesPerSecond);
+            cliffFallDuration =
+                Mathf.Max(0.25f, cliffFallDuration);
+            cliffDissolveDuration =
+                Mathf.Max(0.05f, cliffDissolveDuration);
+            safeFigureExitSurfaceOffset =
+                Mathf.Max(0.01f, safeFigureExitSurfaceOffset);
         }
     }
 }

@@ -87,6 +87,10 @@ namespace PaintedAlive.Paint.Ink.StainHijack
         private InkStainSabotageStatus activeSabotageStatus;
         private Renderer[] figureRenderers;
         private bool[] figureRendererStates;
+        private Vector3 lastSafeCreaturePosition;
+        private Vector3 lastSafeGroundNormal = Vector3.up;
+        private Quaternion lastSafeCreatureRotation;
+        private bool releasedByCliffFall;
 
         public InkCreatureRuntime CurrentTarget => currentTarget;
         public InkCreatureRuntime HijackedCreature => hijackedCreature;
@@ -281,6 +285,10 @@ namespace PaintedAlive.Paint.Ink.StainHijack
                 config.MinimumPitch,
                 config.MaximumPitch);
             cameraVelocity = Vector3.zero;
+            lastSafeCreaturePosition = target.transform.position;
+            lastSafeCreatureRotation = target.transform.rotation;
+            lastSafeGroundNormal = Vector3.up;
+            releasedByCliffFall = false;
 
             figureMotorWasEnabled =
                 figureMotor != null && figureMotor.enabled;
@@ -326,8 +334,10 @@ namespace PaintedAlive.Paint.Ink.StainHijack
             }
 
             InkCreatureRuntime released = hijackedCreature;
+            bool cliffFall = releasedByCliffFall;
             isHijacking = false;
             hijackedCreature = null;
+            releasedByCliffFall = false;
             remainingSeconds = 0f;
             entryProgress = 0f;
             entryArmed = false;
@@ -365,6 +375,10 @@ namespace PaintedAlive.Paint.Ink.StainHijack
             }
 
             activeSabotageStatus = null;
+            if (!cliffFall)
+            {
+                BeginReleasedCreatureRecovery(released, reason);
+            }
             lastResult = string.IsNullOrWhiteSpace(reason)
                 ? "Ele geçirme sona erdi"
                 : reason;
@@ -374,6 +388,34 @@ namespace PaintedAlive.Paint.Ink.StainHijack
                 $"Creature={(released != null ? released.name : "None")}, " +
                 $"Reason={lastResult}",
                 this);
+        }
+
+        private void BeginReleasedCreatureRecovery(
+            InkCreatureRuntime released,
+            string reason)
+        {
+            if (released == null || config == null)
+            {
+                return;
+            }
+
+            InkStainHijackRecoveryStatus recovery =
+                released.GetComponent<
+                    InkStainHijackRecoveryStatus>();
+
+            if (recovery == null)
+            {
+                recovery =
+                    released.gameObject.AddComponent<
+                        InkStainHijackRecoveryStatus>();
+            }
+
+            recovery.BeginRecovery(
+                config.ExitRecoveryDelay,
+                config.ReentryCooldown,
+                string.IsNullOrWhiteSpace(reason)
+                    ? "Hijack released"
+                    : reason);
         }
 
         private void UpdateActiveHijack(Keyboard keyboard)
@@ -423,6 +465,12 @@ namespace PaintedAlive.Paint.Ink.StainHijack
 
             UpdateLookInput();
             SimulateMovement(keyboard, Time.deltaTime);
+
+            if (!isHijacking)
+            {
+                return;
+            }
+
             lastResult =
                 $"WASD hareket • E çıkış • {remainingSeconds:0.0}s";
         }
@@ -496,6 +544,7 @@ namespace PaintedAlive.Paint.Ink.StainHijack
                     out Vector3 groundedPosition,
                     out Vector3 groundNormal))
             {
+                BeginCliffFall(direction, speed);
                 return;
             }
 
@@ -520,6 +569,71 @@ namespace PaintedAlive.Paint.Ink.StainHijack
             hijackedCreature.transform.position =
                 groundedPosition +
                 groundNormal * config.SurfaceOffset;
+            lastSafeCreaturePosition =
+                hijackedCreature.transform.position;
+            lastSafeCreatureRotation =
+                hijackedCreature.transform.rotation;
+            lastSafeGroundNormal = groundNormal;
+        }
+
+        private void BeginCliffFall(
+            Vector3 movementDirection,
+            float movementSpeed)
+        {
+            if (!isHijacking ||
+                hijackedCreature == null ||
+                config == null)
+            {
+                return;
+            }
+
+            InkCreatureRuntime fallingCreature =
+                hijackedCreature;
+            Vector3 safePosition =
+                lastSafeCreaturePosition +
+                lastSafeGroundNormal *
+                config.SafeFigureExitSurfaceOffset;
+            Quaternion safeRotation =
+                Quaternion.Euler(
+                    0f,
+                    lastSafeCreatureRotation.eulerAngles.y,
+                    0f);
+
+            if (figureMotor != null)
+            {
+                figureMotor.Teleport(
+                    safePosition,
+                    safeRotation);
+            }
+
+            InkStainCliffFallSequence fall =
+                fallingCreature.GetComponent<
+                    InkStainCliffFallSequence>();
+
+            if (fall == null)
+            {
+                fall =
+                    fallingCreature.gameObject.AddComponent<
+                        InkStainCliffFallSequence>();
+            }
+
+            Vector3 horizontalVelocity =
+                Vector3.ProjectOnPlane(
+                    movementDirection,
+                    Vector3.up).normalized *
+                Mathf.Max(
+                    movementSpeed,
+                    config.MinimumCliffForwardSpeed) *
+                config.CliffForwardMomentumMultiplier;
+
+            releasedByCliffFall = true;
+            ExitHijack("Yaratık uçuruma sürüklendi");
+            fall.BeginFall(
+                horizontalVelocity,
+                config.CliffFallGravity,
+                config.CliffSpinDegreesPerSecond,
+                config.CliffFallDuration,
+                config.CliffDissolveDuration);
         }
 
         private Vector3 AvoidObstacles(Vector3 direction)
@@ -588,7 +702,10 @@ namespace PaintedAlive.Paint.Ink.StainHijack
                     IsHijackedCreatureCollider(hit.collider) ||
                     hit.distance >= nearest ||
                     Vector3.Angle(hit.normal, Vector3.up) >
-                    config.MaximumWalkableSlope)
+                    config.MaximumWalkableSlope ||
+                    hijackedCreature.transform.position.y -
+                    hit.point.y >
+                    config.MaximumGroundDropBeforeCliff)
                 {
                     continue;
                 }
