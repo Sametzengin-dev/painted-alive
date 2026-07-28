@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75f8b36dfa2c44e4fae1dd61f90b7e3f, type: 3}
+  m_Name: StainWatercolorFlowConfig
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.StainSupport.StainWatercolorFlowConfig
+  detectionRadius: 0.68
+  exitGraceDuration: 0.18
+  fallbackFlowSpeed: 4.4
+  minimumFlowSpeed: 2.6
+  maximumFlowSpeed: 7.25
+  velocityAcceleration: 18
+  steeringSpeed: 1.2
+  surfaceOffset: 0.055
+  surfaceAdhesionSpeed: 12
+  exitNudge: 0.09
+  adapterRefreshInterval: 0.3
