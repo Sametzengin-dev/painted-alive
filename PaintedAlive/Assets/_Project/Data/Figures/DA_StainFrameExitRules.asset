@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13eaed10cc3d7e744b6fff4b1475fa7d, type: 3}
+  m_Name: DA_StainFrameExitRules
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.StainSupport.FrameExit.StainFrameExitConfig
+  normalFigureExitScore: 250
+  stainSupportArrivalScore: 0
+  sameFigureCooldown: 1.25
+  feedbackDuration: 2.4
+  normalExitColor: {r: 0.24, g: 0.95, b: 0.66, a: 1}
+  stainArrivalColor: {r: 0.2, g: 0.86, b: 0.92, a: 1}
+  idleColor: {r: 0.35, g: 0.72, b: 0.92, a: 1}

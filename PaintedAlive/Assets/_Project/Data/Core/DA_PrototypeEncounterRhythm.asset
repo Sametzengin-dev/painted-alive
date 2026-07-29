@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99ac839d4839ec04ebe1858d6e86d9e0, type: 3}
+  m_Name: DA_PrototypeEncounterRhythm
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Core.Encounters.PrototypeEncounterRhythmConfig
+  encounterOneEnd: 0.28
+  breathOneEnd: 0.34
+  encounterTwoEnd: 0.58
+  breathTwoEnd: 0.66
+  encounterThreeEnd: 0.9
+  finalEscapeStart: 0.94
+  readEnd: 0.16
+  lightPressureEnd: 0.36
+  toolResponseEnd: 0.58
+  combinationPressureEnd: 0.82
+  transitionBannerDuration: 2.4
+  logTransitions: 1
