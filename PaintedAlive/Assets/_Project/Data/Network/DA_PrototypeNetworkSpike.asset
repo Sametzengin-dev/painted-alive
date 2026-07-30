@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a594095434effef4e85d7828241d3cbd, type: 3}
+  m_Name: DA_PrototypeNetworkSpike
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Network.Spike.PrototypeNetworkSpikeConfig
+  fusionCandidate: Fusion 2.1.1 / Host-Server
+  fusionKccCandidate: Advanced KCC 2.1.0
+  fishNetCandidate: FishNet 4.7.2R
+  deterministicSeed: 42142
+  strokeCommandCount: 100
+  controlPointsPerStroke: 12
+  strokeCommandsPerSecond: 20
+  figureInputCommandCount: 300
+  figureSnapshotCount: 100
+  jitterMilliseconds: 8
+  packetLossPercent: 0.5
+  baselineRttMilliseconds: 0
+  standardRttMilliseconds: 100
+  stressRttMilliseconds: 150
+  positionStepMeters: 0.01
+  maximumSurfaceExtentMeters: 32
+  maximumMeanBytesPerStroke: 160
+  minimumDeliveryRatio: 0.95
+  requireDeterministicRoundTrip: 1
