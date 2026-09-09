@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c38ea2ebee87d2a41873bff5e60ba559, type: 3}
   m_Name: DA_FigureAnimationClips_Production
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Animation.FigureAnimationClipSet
-  idle: {fileID: 0}
-  walk: {fileID: 0}
-  runSprint: {fileID: 0}
-  jumpStart: {fileID: 0}
-  fallLoop: {fileID: 0}
-  land: {fileID: 0}
+  idle: {fileID: -203655887218126122, guid: 1787be0ee936c7b4fa258127449553ae, type: 3}
+  walk: {fileID: -203655887218126122, guid: 2d036d6fb9d9afc428f24bd8ce70ccf2, type: 3}
+  runSprint: {fileID: -203655887218126122, guid: 41ecfaa5a80a6e44b9821830d0f0b1e1, type: 3}
+  jumpStart: {fileID: -203655887218126122, guid: 262387506297bd6468a286dff013b5fc, type: 3}
+  fallLoop: {fileID: -203655887218126122, guid: c77a2f95ae65da04a92e5e77385be5ad, type: 3}
+  land: {fileID: -203655887218126122, guid: eed0b69cf2eb39e408061cca63807b93, type: 3}
   turnLeft: {fileID: 0}
   turnRight: {fileID: 0}
   stop: {fileID: 0}

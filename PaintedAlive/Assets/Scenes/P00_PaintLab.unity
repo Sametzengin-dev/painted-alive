@@ -991,6 +991,67 @@ Transform:
   - {fileID: 854221944}
   m_Father: {fileID: 30194976}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &40318597
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1220512262}
+    m_Modifications:
+    - target: {fileID: 197566112947882290, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 89154e48ec006084bb2277312a2abd8a, type: 2}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6851691564727814642, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+      propertyPath: m_Name
+      value: Figure_ProductionVisual
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
 --- !u!1 &47162223
 GameObject:
   m_ObjectHideFlags: 0
@@ -1067,6 +1128,16 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 47162223}
   m_CullTransparentMesh: 1
+--- !u!95 &48714302 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 197566112947882290, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+  m_PrefabInstance: {fileID: 40318597}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &48714303 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6079236631004713800, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+  m_PrefabInstance: {fileID: 40318597}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &51584019
 GameObject:
   m_ObjectHideFlags: 0
@@ -14538,7 +14609,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 611177387}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -17645,7 +17716,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &745973517
 Transform:
   m_ObjectHideFlags: 0
@@ -17655,7 +17726,7 @@ Transform:
   m_GameObject: {fileID: 745973516}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.08, z: 0}
+  m_LocalPosition: {x: 0.546, y: 1.08, z: 0}
   m_LocalScale: {x: 0.16, y: 0.16, z: 0.16}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -23412,7 +23483,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Animation.FigureAnimationDriver
   figureMotor: {fileID: 907953215}
   characterController: {fileID: 907953217}
-  animator: {fileID: 0}
+  animator: {fileID: 48714302}
   profile: {fileID: 11400000, guid: 9729954fe6899d949b4a6dc1e32d4fa5, type: 2}
   animatorBound: 0
   animatorControllerAssigned: 0
@@ -24012,7 +24083,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 950776639}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -29215,7 +29286,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 48714303}
   m_Father: {fileID: 907953213}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1220654070
@@ -30247,8 +30319,10 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
+  stringTagMap:
+    RenderType: Opaque
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -30345,7 +30419,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.72, g: 0.6, b: 0.2, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.72, g: 0.6, b: 0.19999996, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
@@ -33651,7 +33725,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1438312552}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1

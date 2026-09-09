@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61b33a8ce27fcb34885960f364f99abe, type: 3}
+  m_Name: DA_FigureMixamoClips_Production
+  m_EditorClassIdentifier: Assembly-CSharp::PaintedAlive.Animation.FigureMixamoClipSet_M55_1_1
+  Idle: {fileID: -203655887218126122, guid: 1787be0ee936c7b4fa258127449553ae, type: 3}
+  Walk: {fileID: -203655887218126122, guid: 2d036d6fb9d9afc428f24bd8ce70ccf2, type: 3}
+  Run: {fileID: -203655887218126122, guid: 9c860bf7247dc5a44a09fc076a891b11, type: 3}
+  Sprint: {fileID: -203655887218126122, guid: 41ecfaa5a80a6e44b9821830d0f0b1e1, type: 3}
+  JumpStart: {fileID: -203655887218126122, guid: 262387506297bd6468a286dff013b5fc, type: 3}
+  FallLoop: {fileID: -203655887218126122, guid: c77a2f95ae65da04a92e5e77385be5ad, type: 3}
+  Land: {fileID: -203655887218126122, guid: eed0b69cf2eb39e408061cca63807b93, type: 3}
