@@ -136,8 +136,17 @@ namespace PaintedAlive.Paint.Ink.StainHijack
                 return false;
             }
 
-            if (!creature.HasGlyph(InkGlyphType.Eye) ||
-                !creature.HasGlyph(InkGlyphType.Foot))
+            InkCreatureDefinition definition = creature.Definition;
+            bool missingRequiredEye =
+                definition != null &&
+                definition.ContainsGlyph(InkGlyphType.Eye) &&
+                !creature.HasGlyph(InkGlyphType.Eye);
+            bool missingRequiredFoot =
+                definition != null &&
+                definition.ContainsGlyph(InkGlyphType.Foot) &&
+                !creature.HasGlyph(InkGlyphType.Foot);
+
+            if (missingRequiredEye || missingRequiredFoot)
             {
                 blocker = "Critical glyph missing";
                 return false;

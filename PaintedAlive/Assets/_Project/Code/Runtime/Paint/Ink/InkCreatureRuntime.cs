@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PaintedAlive.Figures;
+using PaintedAlive.Paint.Ink.Thief;
 using UnityEngine;
 
 namespace PaintedAlive.Paint.Ink
@@ -14,7 +15,10 @@ namespace PaintedAlive.Paint.Ink
         Blinded,
         Crippled,
         Fixed,
-        Pinned
+        Pinned,
+        ToolSeeking,
+        ToolStealWindup,
+        ToolEscape
     }
 
     [DisallowMultipleComponent]
@@ -97,6 +101,7 @@ namespace PaintedAlive.Paint.Ink
         private Color fixedInkColor =
             new Color(0.36f, 0.46f, 0.54f, 1f);
         private InkGlyphHitZone[] glyphHitZones;
+        private InkToolThiefController toolThiefBehavior;
         private Renderer[] allRenderers;
         private MaterialPropertyBlock counterplayPropertyBlock;
         private int lastVisualMode = -1;
@@ -121,6 +126,7 @@ namespace PaintedAlive.Paint.Ink
         {
             visualRoot ??= transform;
             bodyRenderer ??= GetComponentInChildren<Renderer>();
+            toolThiefBehavior ??= GetComponent<InkToolThiefController>();
             CacheVisualComponents();
         }
 
@@ -253,6 +259,9 @@ namespace PaintedAlive.Paint.Ink
                 return;
             }
 
+            toolThiefBehavior ??=
+                GetComponent<InkToolThiefController>();
+
             if (hasEye && now >= nextTargetRefreshTime)
             {
                 RefreshTarget(figures, visibilityMask);
@@ -269,7 +278,33 @@ namespace PaintedAlive.Paint.Ink
                 return;
             }
 
-            Vector3 desiredDirection = GetDesiredDirection(now);
+            Vector3 desiredDirection = Vector3.zero;
+            InkCreatureState overrideState = currentState;
+
+            bool movementOverridden =
+                toolThiefBehavior != null &&
+                toolThiefBehavior.TryGetMovementOverride(
+                    now,
+                    out desiredDirection,
+                    out overrideState);
+
+            if (movementOverridden)
+            {
+                currentTarget = null;
+                currentState = overrideState;
+
+                if (desiredDirection.sqrMagnitude < 0.001f)
+                {
+                    currentSpeed = 0f;
+                    ApplyVisualState();
+                    return;
+                }
+            }
+            else
+            {
+                desiredDirection = GetDesiredDirection(now);
+            }
+
             desiredDirection = ApplyWatercolorInstability(
                 desiredDirection,
                 now);
@@ -326,7 +361,11 @@ namespace PaintedAlive.Paint.Ink
             transform.position = groundedPosition;
             currentSpeed = movementSpeed * speedMultiplier;
 
-            TryApplyContact(now);
+            if (!movementOverridden)
+            {
+                TryApplyContact(now);
+            }
+
             ApplyVisualState();
         }
 

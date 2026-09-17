@@ -32,7 +32,7 @@ namespace PaintedAlive.Core
                 return;
             }
 
-            string[] arguments = Environment.GetCommandLineArgs();
+            string[] arguments = System.Environment.GetCommandLineArgs();
             bool isRecoveryProbe =
                 TryReadIntegerArgument(
                     arguments,

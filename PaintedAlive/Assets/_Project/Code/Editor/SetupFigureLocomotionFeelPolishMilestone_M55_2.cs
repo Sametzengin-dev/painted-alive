@@ -35,6 +35,12 @@ public static class SetupFigureLocomotionFeelPolishMilestone_M55_2
     private const float JumpToFallDuration = 0.055f;
     private const float JumpApexThreshold = 0.080f;
     private const float JumpFallbackExitTime = 0.78f;
+
+    // Recovery guard for very short hops / low-ceiling contacts.
+    // If Jump_Start becomes grounded again before its airborne exits can fire,
+    // route directly into Land instead of leaving the Animator trapped.
+    private const float JumpGroundRecoveryVerticalThreshold = 0.05f;
+
     private const float LandEnterDuration = 0.035f;
     private const float MovingLandExitTime = 0.28f;
     private const float MovingLandBlendDuration = 0.075f;
@@ -342,6 +348,26 @@ public static class SetupFigureLocomotionFeelPolishMilestone_M55_2
         jumpFallback.offset = 0.0f;
         jumpFallback.AddCondition(AnimatorConditionMode.IfNot, 0.0f, "Grounded");
 
+        // Critical recovery path:
+        // A short hop, step edge, low ceiling, or controller-grounding edge case
+        // can make Jump_Start become grounded before either jump->fall path fires.
+        // Both existing jump exits require !Grounded, so without this transition
+        // Jump_Start can remain active indefinitely.
+        //
+        // VerticalSpeed must also be non-positive/near-zero so a one-frame
+        // grounded report at the beginning of a real ascent does not cancel
+        // the jump presentation.
+        AnimatorStateTransition jumpGroundRecovery = jump.AddTransition(land);
+        ConfigureImmediate(jumpGroundRecovery, LandEnterDuration);
+        jumpGroundRecovery.AddCondition(
+            AnimatorConditionMode.If,
+            0.0f,
+            "Grounded");
+        jumpGroundRecovery.AddCondition(
+            AnimatorConditionMode.Less,
+            JumpGroundRecoveryVerticalThreshold,
+            "VerticalSpeed");
+
         // Land trigger path plus grounded fallback. Both are presentation-only.
         AnimatorStateTransition landByTrigger = fall.AddTransition(land);
         ConfigureImmediate(landByTrigger, LandEnterDuration);
@@ -531,9 +557,9 @@ public static class SetupFigureLocomotionFeelPolishMilestone_M55_2
                 locomotion.transitions.Length + " expected=3");
 
         if (jump != null)
-            add(jump.transitions.Length == 2,
+            add(jump.transitions.Length == 3,
                 "JumpTransitions",
-                jump.transitions.Length + " expected=2");
+                jump.transitions.Length + " expected=3 (includes grounded recovery)");
 
         if (fall != null)
             add(fall.transitions.Length == 2,

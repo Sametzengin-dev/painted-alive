@@ -1,3 +1,4 @@
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -82,6 +83,13 @@ namespace PaintedAlive.Figures
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+            {
+                interactionProgress = 0f;
+                waitingForRelease = true;
+                return;
+            }
+
             UpdateCurrentPoint();
 
             InputAction action = restorationAction.action;

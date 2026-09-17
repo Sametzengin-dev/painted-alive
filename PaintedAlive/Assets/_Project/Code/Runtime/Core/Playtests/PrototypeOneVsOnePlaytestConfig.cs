@@ -8,7 +8,7 @@ namespace PaintedAlive.Core.Playtests
     public sealed class PrototypeOneVsOnePlaytestConfig : ScriptableObject
     {
         [Header("Authoritative Match Expectation")]
-        [SerializeField, Min(30f)] private float expectedMatchDuration = 300f;
+        [SerializeField, Min(30f)] private float expectedMatchDuration = 900f;
 
         [Header("Acceptance")]
         [SerializeField, Range(1, 3)] private int requiredDistinctOutcomes = 3;

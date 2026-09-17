@@ -1,3 +1,4 @@
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -158,6 +159,14 @@ namespace PaintedAlive.Figures
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+            {
+                waitingForRelease = true;
+                if (isCrawling)
+                    StopCrawl(true);
+                return;
+            }
+
             bool clingHeld =
                 clingAction.action != null &&
                 clingAction.action.IsPressed();

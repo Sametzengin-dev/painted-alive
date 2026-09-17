@@ -278,6 +278,15 @@ namespace PaintedAlive.UI.Telegraph
 
         private bool RoleCanSeeTelegraph()
         {
+            // Palimpsest world interactions are player-facing Painter controls.
+            // The Figure must see the warning, but the Painter also needs clear
+            // confirmation that the request/telegraph was accepted.
+            if (Contains(activeShape, "Palimpsest/") ||
+                Contains(activeShape, "LivingGallery/"))
+            {
+                return true;
+            }
+
             if (showWhilePainterForPrototype ||
                 unifiedHudController == null)
             {
@@ -345,6 +354,17 @@ namespace PaintedAlive.UI.Telegraph
         private static string TranslateShape(
             string shapeName)
         {
+            if (Contains(shapeName, "Palimpsest/") ||
+                Contains(shapeName, "LivingGallery/"))
+            {
+                int slash = shapeName.IndexOf('/');
+                string id = slash >= 0 && slash + 1 < shapeName.Length
+                    ? shapeName.Substring(slash + 1)
+                    : shapeName;
+
+                return id.Replace("_", " ");
+            }
+
             if (Contains(shapeName, "Ramp"))
             {
                 return "RAMPA";
@@ -361,6 +381,13 @@ namespace PaintedAlive.UI.Telegraph
         private static string ResolveCounterHint(
             string shapeName)
         {
+            if (Contains(shapeName, "Palimpsest/") ||
+                Contains(shapeName, "LivingGallery/"))
+            {
+                return
+                    "DÜNYA MÜDAHALESİ • TELEGRAPH'I OKU • ROTAYI / POZİSYONU DEĞİŞTİR";
+            }
+
             if (Contains(shapeName, "Ramp"))
             {
                 return

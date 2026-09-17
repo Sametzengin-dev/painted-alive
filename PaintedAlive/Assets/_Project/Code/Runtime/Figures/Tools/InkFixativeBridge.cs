@@ -1,4 +1,5 @@
 using PaintedAlive.Figures;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.Paint;
 using PaintedAlive.Paint.Ink;
 using UnityEngine;
@@ -90,7 +91,8 @@ namespace PaintedAlive.Figures.Tools
 
         private void Update()
         {
-            if (fixativeController == null ||
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed ||
+                fixativeController == null ||
                 !fixativeController.isActiveAndEnabled ||
                 useToolAction == null ||
                 useToolAction.action == null ||

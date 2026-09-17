@@ -1,3 +1,4 @@
+using PaintedAlive.UI.UnifiedHUD;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,6 +26,12 @@ namespace PaintedAlive.MatchFlow
 
         [SerializeField]
         private Text contractText;
+
+        [Header("Focus")]
+        [SerializeField]
+        private bool hideWhenUnifiedHudPresent = true;
+
+        private PrototypeUnifiedHudView cachedUnifiedHud;
 
         public void Configure(
             PrototypeCoreMatchController configuredController,
@@ -55,11 +62,13 @@ namespace PaintedAlive.MatchFlow
 
         private void Update()
         {
-            if (controller == null)
+            if (controller == null || ShouldHideForUnifiedHud())
             {
                 if (group != null)
                 {
                     group.alpha = 0f;
+                    group.interactable = false;
+                    group.blocksRaycasts = false;
                 }
 
                 return;
@@ -111,6 +120,23 @@ namespace PaintedAlive.MatchFlow
                 contractText.text =
                     "LEKE MAÇI BİTİRMEZ • RESSAM KILL PUANI YOK • YENİ INPUT YOK";
             }
+        }
+
+        private bool ShouldHideForUnifiedHud()
+        {
+            if (!hideWhenUnifiedHudPresent)
+            {
+                return false;
+            }
+
+            if (cachedUnifiedHud == null)
+            {
+                cachedUnifiedHud = FindFirstObjectByType<PrototypeUnifiedHudView>(
+                    FindObjectsInactive.Exclude);
+            }
+
+            return cachedUnifiedHud != null &&
+                   cachedUnifiedHud.isActiveAndEnabled;
         }
 
         private static string TranslateResult(

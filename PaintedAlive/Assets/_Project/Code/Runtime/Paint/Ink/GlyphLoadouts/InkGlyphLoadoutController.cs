@@ -166,6 +166,29 @@ namespace PaintedAlive.Paint.Ink.GlyphLoadouts
             return false;
         }
 
+        public bool TryGetLoadout(
+            InkGlyphLoadoutId id,
+            out InkGlyphLoadoutDefinition definition)
+        {
+            definition = null;
+
+            if (loadouts == null)
+                return false;
+
+            for (int index = 0; index < loadouts.Length; index++)
+            {
+                InkGlyphLoadoutDefinition candidate = loadouts[index];
+
+                if (IsValid(candidate) && candidate.LoadoutId == id)
+                {
+                    definition = candidate;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public bool Select(InkGlyphLoadoutId id, string reason)
         {
             if (loadouts == null)

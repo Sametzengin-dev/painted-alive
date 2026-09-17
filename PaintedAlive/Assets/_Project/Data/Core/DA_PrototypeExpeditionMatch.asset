@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DA_PrototypeExpeditionMatch
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Core.MatchFlow.PrototypeExpeditionMatchConfig
   preparationDuration: 4
-  activeDuration: 300
+  activeDuration: 900
   autoStartOnPlay: 1
   pauseWorldDuringPreparation: 1
   pauseWorldWhenCompleted: 1

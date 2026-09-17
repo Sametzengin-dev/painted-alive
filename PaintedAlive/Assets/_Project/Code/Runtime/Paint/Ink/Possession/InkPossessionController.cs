@@ -1,4 +1,5 @@
 using PaintedAlive.Figures;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.Paint.Ink;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -153,6 +154,9 @@ namespace PaintedAlive.Paint.Ink.Possession
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+                return;
+
             Keyboard keyboard = Keyboard.current;
 
             if (keyboard != null &&

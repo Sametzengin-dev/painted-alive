@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c89344b6b9adf504e9d3afc344e7fc24, type: 3}
   m_Name: DA_PrototypeOneVsOnePlaytest
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Core.Playtests.PrototypeOneVsOnePlaytestConfig
-  expectedMatchDuration: 300
+  expectedMatchDuration: 900
   requiredDistinctOutcomes: 3
   earlyPassProgressThreshold: 0.28
   rampProgressDelta: 0.025

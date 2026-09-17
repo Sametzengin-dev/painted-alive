@@ -1,5 +1,6 @@
 using System;
 using PaintedAlive.Figures;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.Paint;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -192,6 +193,7 @@ namespace PaintedAlive.Figures.Tools
 
             if (useToolAction != null &&
                 useToolAction.action != null &&
+                !PaintedAliveNetworkRoleBridge.GameplayInputSuppressed &&
                 useToolAction.action.WasPressedThisFrame())
             {
                 if (isAnchored)

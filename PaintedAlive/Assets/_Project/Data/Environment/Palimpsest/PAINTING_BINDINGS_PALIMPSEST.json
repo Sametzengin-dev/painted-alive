@@ -1,0 +1,71 @@
+{
+  "schema": "painted_alive.palimpsest.painting_bindings.v1",
+  "map": "The Palimpsest",
+  "purpose": "Authoritative painting texture -> Unity material/object binding supplied after M55.9.",
+  "bindings": [
+    {
+      "texture": "ART_Architecture_Study_01.png",
+      "materials": [
+        "MAT_ART_Architecture_Study_01",
+        "MAT_ART_Architecture_Study_01_Distant",
+        "MAT_ART_Architecture_Study_01_Distant.001"
+      ],
+      "objects": [
+        "ART_Easel_Study.001",
+        "ART_Underpainting_FormerDoor",
+        "CURRENT_LAYER_B",
+        "Exit_FloorStudy",
+        "INT_Fold_A",
+        "BG_Monument_01",
+        "BG_Monument_06"
+      ]
+    },
+    {
+      "texture": "ART_Landscape_01.png",
+      "materials": [
+        "MAT_ART_Landscape_01",
+        "MAT_ART_Landscape_01_Distant"
+      ],
+      "objects": [
+        "ART_Distant_Destination",
+        "ART_Entrance_Promise",
+        "BG_Monument_03"
+      ]
+    },
+    {
+      "texture": "ART_Underpaint_Figure_01.png",
+      "materials": [
+        "MAT_ART_Underpaint_Figure_01",
+        "MAT_ART_Underpaint_Figure_01_Distant",
+        "MAT_ART_Underpaint_Figure_01_Distant.001"
+      ],
+      "objects": [
+        "ART_Easel_Study",
+        "ART_Easel_Study.002",
+        "ART_Entrance_Study",
+        "ART_Smear_Study",
+        "Entrance_FloorStudy",
+        "GreatFold_LowerLeaf",
+        "BG_Monument_02",
+        "BG_Monument_05"
+      ]
+    },
+    {
+      "texture": "ART_Unfinished_Masterwork_01.png",
+      "materials": [
+        "MAT_ART_Unfinished_Masterwork_01",
+        "MAT_ART_Unfinished_Masterwork_01_Distant",
+        "MAT_ART_Unfinished_Masterwork_01_Distant.001"
+      ],
+      "objects": [
+        "ART_Backside_OldComposition",
+        "ART_Easel_Study.003",
+        "ART_Exit_Unfinished",
+        "CURRENT_LAYER_A",
+        "INT_GreatFold",
+        "BG_Monument_00",
+        "BG_Monument_04"
+      ]
+    }
+  ]
+}

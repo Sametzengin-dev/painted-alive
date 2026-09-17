@@ -141,7 +141,7 @@ namespace PaintedAlive.Core.MatchFlow
             completionReason = PrototypeExpeditionCompletionReason.None;
             stainArrivalDuringRun = false;
             elapsedActiveTime = 0f;
-            remainingActiveTime = config != null ? config.ActiveDuration : 300f;
+            remainingActiveTime = config != null ? config.ActiveDuration : 900f;
             phaseTimeRemaining = config != null ? config.PreparationDuration : 4f;
             preparationEndsAtUnscaled = Time.unscaledTime + phaseTimeRemaining;
 
@@ -168,7 +168,7 @@ namespace PaintedAlive.Core.MatchFlow
             RestoreWorldAndInputs();
 
             activeStartedAtUnscaled = Time.unscaledTime;
-            float duration = config != null ? config.ActiveDuration : 300f;
+            float duration = config != null ? config.ActiveDuration : 900f;
             activeEndsAtUnscaled = activeStartedAtUnscaled + duration;
             elapsedActiveTime = 0f;
             remainingActiveTime = duration;

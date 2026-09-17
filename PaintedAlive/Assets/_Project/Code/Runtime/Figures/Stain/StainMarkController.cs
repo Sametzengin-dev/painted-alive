@@ -1,3 +1,4 @@
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -88,7 +89,8 @@ namespace PaintedAlive.Figures
 
         private void Update()
         {
-            if (!IsInStainForm)
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed ||
+                !IsInStainForm)
                 return;
 
             InputAction action = placeMarkAction.action;

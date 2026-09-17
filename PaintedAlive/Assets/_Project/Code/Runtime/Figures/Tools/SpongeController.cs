@@ -1,4 +1,5 @@
 using PaintedAlive.Figures;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.Paint.Sponge;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -183,6 +184,15 @@ namespace PaintedAlive.Figures.Tools
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+            {
+                useWasHeld = false;
+                isAbsorbing = false;
+                currentTargetType = "M56 MENU";
+                RefreshHud();
+                return;
+            }
+
             if (config == null || reservoir == null)
             {
                 return;

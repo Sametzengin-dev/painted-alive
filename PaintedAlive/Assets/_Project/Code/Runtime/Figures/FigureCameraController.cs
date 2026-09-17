@@ -1,3 +1,4 @@
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 
 namespace PaintedAlive.Figures
@@ -48,7 +49,9 @@ namespace PaintedAlive.Figures
 
         private void OnEnable()
         {
-            SetCursorState(lockCursor);
+            SetCursorState(
+                lockCursor &&
+                !PaintedAliveNetworkRoleBridge.GameplayInputSuppressed);
         }
 
         private void OnDisable()
@@ -58,6 +61,9 @@ namespace PaintedAlive.Figures
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+                return;
+
             Vector2 lookInput = inputReader.Look;
 
             float sensitivity = inputReader.LookUsesPointerDelta

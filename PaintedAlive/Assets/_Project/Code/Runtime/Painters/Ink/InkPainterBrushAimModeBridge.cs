@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.Paint.Ink.Economy;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -59,6 +60,12 @@ namespace PaintedAlive.Painters.Ink
             if (roleAuthority == null)
             {
                 currentAimMode = "Authority missing";
+                return;
+            }
+
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+            {
+                currentAimMode = "M56 UI";
                 return;
             }
 

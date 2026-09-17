@@ -1,4 +1,5 @@
 using System;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.Paint;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -45,6 +46,9 @@ namespace PaintedAlive.Painters
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+                return;
+
             if (selectWallAction != null &&
                 selectWallAction.action != null &&
                 selectWallAction.action.WasPressedThisFrame())

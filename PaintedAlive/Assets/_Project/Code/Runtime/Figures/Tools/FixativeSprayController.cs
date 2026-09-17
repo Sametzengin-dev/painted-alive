@@ -1,4 +1,5 @@
 using PaintedAlive.Figures;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.Paint;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -90,7 +91,8 @@ namespace PaintedAlive.Figures.Tools
 
         private void Update()
         {
-            if (config == null ||
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed ||
+                config == null ||
                 useToolAction == null ||
                 useToolAction.action == null)
             {

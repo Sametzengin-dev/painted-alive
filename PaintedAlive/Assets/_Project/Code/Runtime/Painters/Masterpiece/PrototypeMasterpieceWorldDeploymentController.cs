@@ -1,5 +1,6 @@
 using PaintedAlive.Core.RoleAuthority;
 using PaintedAlive.Painters.SideCanvas;
+using PaintedAlive.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -32,6 +33,9 @@ namespace PaintedAlive.Painters.Masterpiece
         [Header("Side Canvas Feedback")]
         [SerializeField] private CanvasGroup sideCanvasFeedbackGroup;
         [SerializeField] private Text sideCanvasFeedbackText;
+
+        [Header("Focus")]
+        [SerializeField, Min(0f)] private float contextualHudHoldSeconds = 3f;
 
         [Header("Deployment")]
         [SerializeField] private bool closeCanvasAfterDeploy = true;
@@ -121,6 +125,7 @@ namespace PaintedAlive.Painters.Masterpiece
         private InputAction deployAction;
         private InputAction recallAction;
         private InputAction proxyAction;
+        private float hudVisibleUntilUnscaled;
 
         public void Configure(
             PrototypeLivingSideCanvasController configuredSideCanvas,
@@ -783,22 +788,28 @@ namespace PaintedAlive.Painters.Masterpiece
 
         private void RefreshHud()
         {
-            if (statusGroup != null)
-            {
-                statusGroup.alpha = painterRoleActive ? 1f : 0f;
-                statusGroup.interactable = false;
-                statusGroup.blocksRaycasts = false;
-            }
+            bool relevantNow =
+                painterRoleActive &&
+                (activeInstance != null ||
+                 sideCanvasResolvedOpen ||
+                 lastDeployAttemptAt >= 0f &&
+                 Time.unscaledTime - lastDeployAttemptAt <= contextualHudHoldSeconds);
 
-            if (!painterRoleActive)
-            {
-                if (sideCanvasFeedbackGroup != null)
-                {
-                    sideCanvasFeedbackGroup.alpha = 0f;
-                    sideCanvasFeedbackGroup.interactable = false;
-                    sideCanvasFeedbackGroup.blocksRaycasts = false;
-                }
+            bool visible =
+                PrototypeRuntimeHudVisibilityUtility.Hold(
+                    relevantNow,
+                    ref hudVisibleUntilUnscaled,
+                    contextualHudHoldSeconds);
 
+            PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                statusGroup,
+                visible);
+
+            if (!visible)
+            {
+                PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                    sideCanvasFeedbackGroup,
+                    false);
                 return;
             }
 
@@ -859,14 +870,9 @@ namespace PaintedAlive.Painters.Masterpiece
                 sideCanvas != null &&
                 sideCanvas.IsOpen;
 
-            if (sideCanvasFeedbackGroup != null)
-            {
-                sideCanvasFeedbackGroup.alpha =
-                    visible ? 1f : 0f;
-
-                sideCanvasFeedbackGroup.interactable = false;
-                sideCanvasFeedbackGroup.blocksRaycasts = false;
-            }
+            PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                sideCanvasFeedbackGroup,
+                visible);
 
             if (!visible ||
                 sideCanvasFeedbackText == null)

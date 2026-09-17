@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20f66cc27c9c34640b8ee2b7c82b3e83, type: 3}
   m_Name: DA_PrototypeMatch_Default
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Core.Prototypes.PrototypeMatchConfig
-  matchDuration: 300
+  matchDuration: 900
   countdownDuration: 3

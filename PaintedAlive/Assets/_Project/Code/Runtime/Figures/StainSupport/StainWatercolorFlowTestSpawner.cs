@@ -14,7 +14,14 @@ namespace PaintedAlive.Figures.StainSupport
             BindingFlags.NonPublic;
 
         [SerializeField] private MonoBehaviour watercolorDebugSpawner;
-        [SerializeField] private bool spawnOnPlayModeStart = true;
+
+        [Header("Debug Spawn Lifecycle")]
+        [Tooltip(
+            "Legacy M34 automation. Keep disabled for normal gameplay. " +
+            "Manual F8 / context-menu spawning remains available for testing.")]
+        [SerializeField] private bool allowAutomaticTestSpawn;
+
+        [SerializeField] private bool spawnOnPlayModeStart = false;
         [SerializeField, Min(0f)] private float spawnDelay = 0.4f;
 
         private bool attempted;
@@ -26,7 +33,13 @@ namespace PaintedAlive.Figures.StainSupport
 
         private IEnumerator Start()
         {
-            if (!spawnOnPlayModeStart || attempted)
+            // M55.9.6: Milestone 34's automatic test stream must never leak
+            // into a normal match merely because an old scene serialized
+            // spawnOnPlayModeStart=true. Both explicit debug opt-ins are now
+            // required.
+            if (!allowAutomaticTestSpawn ||
+                !spawnOnPlayModeStart ||
+                attempted)
             {
                 yield break;
             }
@@ -91,6 +104,15 @@ namespace PaintedAlive.Figures.StainSupport
                     $"F8 ile elle oluşturabilirsin. Sebep: {exception.Message}",
                     watercolorDebugSpawner);
             }
+        }
+
+        public bool AllowAutomaticTestSpawn => allowAutomaticTestSpawn;
+        public bool SpawnOnPlayModeStart => spawnOnPlayModeStart;
+
+        public void DisableAutomaticTestSpawn()
+        {
+            allowAutomaticTestSpawn = false;
+            spawnOnPlayModeStart = false;
         }
 
         private MonoBehaviour FindDebugSpawner()

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using PaintedAlive.Core.RoleAuthority;
+using PaintedAlive.UI;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
@@ -62,6 +63,9 @@ namespace PaintedAlive.Figures.CounterComposition
         [SerializeField] private Text stateText;
         [SerializeField] private Text controlsText;
 
+        [Header("Focus")]
+        [SerializeField, Min(0f)] private float contextualHudHoldSeconds = 2.5f;
+
         [Header("Runtime Read Only")]
         [SerializeField] private bool figureRoleActive;
         [SerializeField] private bool fullStainBlocked;
@@ -117,6 +121,7 @@ namespace PaintedAlive.Figures.CounterComposition
         private bool hasLastFigurePosition;
         private bool wasOnRoute;
         private float nextLoadProbeAt;
+        private float hudVisibleUntilUnscaled;
 
         private LineRenderer assistArrow;
         private Material assistMaterial;
@@ -1066,14 +1071,24 @@ namespace PaintedAlive.Figures.CounterComposition
 
         private void RefreshHud()
         {
-            bool visible = figureRoleActive;
+            bool relevantNow =
+                figureRoleActive &&
+                routeAvailable &&
+                (assistActive ||
+                 onRoute ||
+                 overloaded ||
+                 currentLoadKg > 0.01f ||
+                 (routeDistance >= 0f && routeDistance <= routeUseRadius * 1.75f));
 
-            if (statusGroup != null)
-            {
-                statusGroup.alpha = visible ? 1f : 0f;
-                statusGroup.interactable = false;
-                statusGroup.blocksRaycasts = false;
-            }
+            bool visible =
+                PrototypeRuntimeHudVisibilityUtility.Hold(
+                    relevantNow,
+                    ref hudVisibleUntilUnscaled,
+                    contextualHudHoldSeconds);
+
+            PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                statusGroup,
+                visible);
 
             if (!visible)
             {

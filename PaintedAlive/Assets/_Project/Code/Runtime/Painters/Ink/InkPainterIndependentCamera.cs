@@ -1,4 +1,5 @@
 using PaintedAlive.Figures;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -19,6 +20,19 @@ namespace PaintedAlive.Painters.Ink
         [SerializeField]
         private InkPainterRoleCameraConfig config;
 
+        [Header("Runtime View Tuning")]
+        [SerializeField, Min(0.1f)]
+        private float preciseHeightStep = 1f;
+
+        [SerializeField, Min(0.5f)]
+        private float fieldOfViewStep = 2f;
+
+        [SerializeField, Range(25f, 120f)]
+        private float minimumRuntimeFieldOfView = 35f;
+
+        [SerializeField, Range(25f, 120f)]
+        private float maximumRuntimeFieldOfView = 100f;
+
         [Header("Runtime - Read Only")]
         [SerializeField]
         private float yaw;
@@ -32,12 +46,25 @@ namespace PaintedAlive.Painters.Ink
         [SerializeField]
         private bool boundaryLimited;
 
+        [SerializeField]
+        private float runtimeReframeHeightBias;
+
+        [SerializeField]
+        private float runtimeFieldOfViewOffset;
+
         private bool initialized;
 
         public Camera ControlledCamera => controlledCamera;
         public FigureMotor TrackedFigure => trackedFigure;
+        public InkPainterRoleCameraConfig Config => config;
         public bool PlanningStance => planningStance;
         public bool BoundaryLimited => boundaryLimited;
+        public float RuntimeReframeHeightBias => runtimeReframeHeightBias;
+        public float RuntimeFieldOfViewOffset => runtimeFieldOfViewOffset;
+        public float CurrentHeightFromFigure =>
+            trackedFigure != null
+                ? transform.position.y - trackedFigure.transform.position.y
+                : 0f;
 
         private void Awake()
         {
@@ -83,6 +110,9 @@ namespace PaintedAlive.Painters.Ink
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+                return;
+
             if (trackedFigure == null || config == null)
             {
                 return;
@@ -96,9 +126,33 @@ namespace PaintedAlive.Painters.Ink
                 return;
             }
 
-            if (keyboard.rKey.wasPressedThisFrame)
+            if (keyboard.homeKey.wasPressedThisFrame)
+            {
+                ResetRuntimeViewTuning();
+            }
+            else if (keyboard.rKey.wasPressedThisFrame)
             {
                 ReframeOnFigure();
+            }
+
+            if (keyboard.pageUpKey.wasPressedThisFrame)
+            {
+                NudgePreferredHeight(preciseHeightStep);
+            }
+            else if (keyboard.pageDownKey.wasPressedThisFrame)
+            {
+                NudgePreferredHeight(-preciseHeightStep);
+            }
+
+            if (keyboard.leftBracketKey.wasPressedThisFrame)
+            {
+                runtimeFieldOfViewOffset -= fieldOfViewStep;
+                ClampRuntimeFieldOfViewOffset();
+            }
+            else if (keyboard.rightBracketKey.wasPressedThisFrame)
+            {
+                runtimeFieldOfViewOffset += fieldOfViewStep;
+                ClampRuntimeFieldOfViewOffset();
             }
 
             planningStance = keyboard.leftAltKey.isPressed ||
@@ -117,6 +171,17 @@ namespace PaintedAlive.Painters.Ink
             trackedFigure = figure;
             config = cameraConfig;
             CaptureAngles();
+        }
+
+        public void PrepareForPainterRoleActivation()
+        {
+            if (trackedFigure == null || config == null)
+                return;
+
+            ReframeOnFigure();
+            initialized = true;
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
 
         [ContextMenu("Debug/Reframe Painter Camera")]
@@ -138,14 +203,71 @@ namespace PaintedAlive.Painters.Ink
 
             Vector3 focus = trackedFigure.transform.position +
                 Vector3.up * 1.4f;
-            transform.position = focus -
+
+            float preferredHeight = Mathf.Clamp(
+                config.ReframeHeight + runtimeReframeHeightBias,
+                config.MinimumHeightFromFigure,
+                config.MaximumHeightFromFigure);
+
+            Vector3 candidate = focus -
                 figureForward * config.ReframeDistance +
-                Vector3.up * config.ReframeHeight;
+                Vector3.up * preferredHeight;
+
+            transform.position = ConstrainToWorkVolume(
+                candidate,
+                out boundaryLimited);
             transform.rotation = Quaternion.LookRotation(
                 focus - transform.position,
                 Vector3.up);
             CaptureAngles();
             boundaryLimited = false;
+        }
+
+        public void ResetRuntimeViewTuning()
+        {
+            runtimeReframeHeightBias = 0f;
+            runtimeFieldOfViewOffset = 0f;
+            ReframeOnFigure();
+        }
+
+        private void NudgePreferredHeight(float delta)
+        {
+            if (trackedFigure == null || config == null)
+                return;
+
+            float currentHeight = CurrentHeightFromFigure;
+            float desiredHeight = Mathf.Clamp(
+                currentHeight + delta,
+                config.MinimumHeightFromFigure,
+                config.MaximumHeightFromFigure);
+
+            runtimeReframeHeightBias =
+                desiredHeight - config.ReframeHeight;
+
+            Vector3 candidate = transform.position;
+            candidate.y =
+                trackedFigure.transform.position.y + desiredHeight;
+
+            transform.position = ConstrainToWorkVolume(
+                candidate,
+                out boundaryLimited);
+        }
+
+        private void ClampRuntimeFieldOfViewOffset()
+        {
+            if (config == null)
+                return;
+
+            float baseFov = planningStance
+                ? config.PlanningFieldOfView
+                : config.NormalFieldOfView;
+
+            float target = Mathf.Clamp(
+                baseFov + runtimeFieldOfViewOffset,
+                minimumRuntimeFieldOfView,
+                maximumRuntimeFieldOfView);
+
+            runtimeFieldOfViewOffset = target - baseFov;
         }
 
         private void UpdateLook(Mouse mouse)
@@ -256,9 +378,14 @@ namespace PaintedAlive.Painters.Ink
                 return;
             }
 
-            float target = planningStance
+            float baseTarget = planningStance
                 ? config.PlanningFieldOfView
                 : config.NormalFieldOfView;
+
+            float target = Mathf.Clamp(
+                baseTarget + runtimeFieldOfViewOffset,
+                minimumRuntimeFieldOfView,
+                maximumRuntimeFieldOfView);
             float interpolation = 1f - Mathf.Exp(
                 -config.FieldOfViewSharpness * deltaTime);
             controlledCamera.fieldOfView = Mathf.Lerp(

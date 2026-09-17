@@ -8,7 +8,7 @@ namespace PaintedAlive.Core.Prototypes
     public sealed class PrototypeMatchConfig : ScriptableObject
     {
         [SerializeField, Min(10f)]
-        private float matchDuration = 300f;
+        private float matchDuration = 900f;
 
         [SerializeField, Min(0f)]
         private float countdownDuration = 3f;

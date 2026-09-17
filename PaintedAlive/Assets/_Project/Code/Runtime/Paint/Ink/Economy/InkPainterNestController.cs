@@ -1,5 +1,7 @@
 using PaintedAlive.Figures;
 using PaintedAlive.Paint.Ink.GlyphLoadouts;
+using PaintedAlive.Painters;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -74,6 +76,7 @@ namespace PaintedAlive.Paint.Ink.Economy
         private bool inputWasHeld;
 
         public Camera PainterCamera => painterCamera;
+        public LayerMask SurfaceMask => surfaceMask;
         public InkSystemManager InkManager => inkManager;
         public InkPainterEconomy Economy => economy;
         public bool IsCasting => isCasting;
@@ -86,6 +89,10 @@ namespace PaintedAlive.Paint.Ink.Economy
 
         private void Awake()
         {
+            surfaceMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    surfaceMask);
+
             inkManager ??= InkSystemManager.ActiveInstance;
             economy ??= InkPainterEconomy.ActiveInstance;
             SetPreviewActive(false);
@@ -110,6 +117,13 @@ namespace PaintedAlive.Paint.Ink.Economy
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+            {
+                if (isCasting)
+                    CancelCast("M56 UI owns input");
+                return;
+            }
+
             Keyboard keyboard = Keyboard.current;
 
             if (keyboard == null || IsEditingText())
@@ -165,6 +179,43 @@ namespace PaintedAlive.Paint.Ink.Economy
             InkGlyphLoadoutController controller)
         {
             loadoutController = controller;
+        }
+
+        public void IncludeEnvironmentSurfaceLayers()
+        {
+            surfaceMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    surfaceMask);
+        }
+
+        public bool ApplyReplicatedCreature(
+            InkGlyphLoadoutId loadoutId,
+            Vector3 point,
+            Vector3 normal,
+            Vector3 facing)
+        {
+            inkManager ??= InkSystemManager.ActiveInstance;
+            loadoutController ??= InkGlyphLoadoutController.ActiveInstance;
+
+            if (inkManager == null || loadoutController == null)
+                return false;
+
+            if (!loadoutController.TryGetLoadout(
+                    loadoutId,
+                    out InkGlyphLoadoutDefinition loadout) ||
+                loadout == null ||
+                loadout.CreatureDefinition == null)
+            {
+                return false;
+            }
+
+            return inkManager.TrySpawnCreature(
+                loadout.CreatureDefinition,
+                point,
+                normal,
+                facing,
+                out _,
+                out _);
         }
 
         [ContextMenu("Debug/Begin Ink Nest Cast")]
@@ -294,6 +345,18 @@ namespace PaintedAlive.Paint.Ink.Economy
                 CancelCast("Nest spawn rejected by Ink Manager");
                 return;
             }
+
+            InkGlyphLoadoutId replicatedLoadout =
+                loadoutController != null &&
+                loadoutController.ActiveLoadout != null
+                    ? loadoutController.ActiveLoadout.LoadoutId
+                    : InkGlyphLoadoutId.Lekebacak;
+
+            PaintedAliveNetworkGameplayBridge.NotifyLocalInkCreature(
+                replicatedLoadout,
+                targetPoint,
+                targetNormal,
+                facing);
 
             nextPlacementTime = Time.time + config.PlacementCooldown;
             string displayName =

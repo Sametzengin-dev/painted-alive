@@ -47,6 +47,13 @@ namespace PaintedAlive.Paint.Watercolor
         private LayerMask surfaceMask =
             Physics.DefaultRaycastLayers;
 
+        [Header("Spawn Lifecycle")]
+        [Tooltip(
+            "Legacy/debug only. Production watercolor flows should be created " +
+            "by an explicit gameplay action and then Initialize(...) should be called.")]
+        [SerializeField]
+        private bool initializeOnStart;
+
         [Header("Runtime - Read Only")]
         [SerializeField]
         private float availableAmount;
@@ -146,13 +153,26 @@ namespace PaintedAlive.Paint.Watercolor
 
         private void Start()
         {
-            if (!initialized && config != null)
+            // M55.9.6: a WatercolorFlowSurface is a runtime paint result, not a
+            // scene-start effect. It remains dormant until an explicit gameplay
+            // action calls Initialize(...). The opt-in flag exists only for
+            // legacy/debug authored test surfaces.
+            if (!initializeOnStart || initialized || config == null)
             {
-                Initialize(
-                    transform.forward,
-                    paintColor,
-                    config.InitialAmount);
+                return;
             }
+
+            Initialize(
+                transform.forward,
+                paintColor,
+                config.InitialAmount);
+        }
+
+        public bool InitializeOnStart => initializeOnStart;
+
+        public void SetInitializeOnStart(bool value)
+        {
+            initializeOnStart = value;
         }
 
         private void OnDisable()

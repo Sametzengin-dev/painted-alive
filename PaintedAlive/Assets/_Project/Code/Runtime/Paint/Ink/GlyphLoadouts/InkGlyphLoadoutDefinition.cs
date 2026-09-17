@@ -6,7 +6,8 @@ namespace PaintedAlive.Paint.Ink.GlyphLoadouts
     {
         Lekebacak = 0,
         Kabuklu = 1,
-        KesikAvci = 2
+        KesikAvci = 2,
+        BoyaHirsizi = 3
     }
 
     [CreateAssetMenu(

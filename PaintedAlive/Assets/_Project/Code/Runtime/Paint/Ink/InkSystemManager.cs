@@ -3,6 +3,7 @@ using PaintedAlive.Figures;
 using PaintedAlive.Paint.Ink.Economy;
 using PaintedAlive.Paint.Ink.GlyphLoadouts;
 using PaintedAlive.Paint.Ink.Lifecycle;
+using PaintedAlive.Painters;
 using UnityEngine;
 
 namespace PaintedAlive.Paint.Ink
@@ -65,6 +66,8 @@ namespace PaintedAlive.Paint.Ink
             ? config.MaximumConcurrentCreatures
             : 0;
         public string LastSpawnRejection => lastSpawnRejection;
+        public LayerMask NavigationMask => navigationMask;
+        public LayerMask VisibilityMask => visibilityMask;
 
         [RuntimeInitializeOnLoadMethod(
             RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -75,6 +78,13 @@ namespace PaintedAlive.Paint.Ink
 
         private void Awake()
         {
+            navigationMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    navigationMask);
+            visibilityMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    visibilityMask);
+
             if (activeInstance != null && activeInstance != this)
             {
                 Debug.LogError(
@@ -108,6 +118,16 @@ namespace PaintedAlive.Paint.Ink
                     this);
                 enabled = false;
             }
+        }
+
+        public void IncludeEnvironmentSurfaceLayers()
+        {
+            navigationMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    navigationMask);
+            visibilityMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    visibilityMask);
         }
 
         private void OnEnable()

@@ -33,7 +33,7 @@ namespace PaintedAlive.MatchFlow
         private float preparationSeconds = 3.0f;
 
         [SerializeField, Min(10f)]
-        private float roundSeconds = 300.0f;
+        private float roundSeconds = 900.0f;
 
         [Header("GDD Score Contract")]
         [SerializeField, Min(1)]

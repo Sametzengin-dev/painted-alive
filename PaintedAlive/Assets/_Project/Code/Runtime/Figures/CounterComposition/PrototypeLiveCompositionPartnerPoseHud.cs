@@ -1,3 +1,4 @@
+using PaintedAlive.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,6 +24,12 @@ namespace PaintedAlive.Figures.CounterComposition
         [SerializeField]
         private Text controlsText;
 
+        [Header("Focus")]
+        [SerializeField, Min(0f)]
+        private float collapseHoldSeconds = 3f;
+
+        private float visibleUntilUnscaled;
+
         public void Configure(
             PrototypeLiveCompositionPartnerPoseBinder configuredBinder,
             CanvasGroup configuredGroup,
@@ -41,19 +48,30 @@ namespace PaintedAlive.Figures.CounterComposition
         {
             if (binder == null)
             {
-                if (group != null)
-                {
-                    group.alpha = 0f;
-                }
-
+                PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                    group,
+                    false);
                 return;
             }
 
-            if (group != null)
+            bool relevantNow =
+                binder.PartnerPoseBound ||
+                binder.CompositionObserved ||
+                binder.PartnerConsentSessionObserved;
+
+            bool visible =
+                PrototypeRuntimeHudVisibilityUtility.Hold(
+                    relevantNow,
+                    ref visibleUntilUnscaled,
+                    collapseHoldSeconds);
+
+            PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                group,
+                visible);
+
+            if (!visible)
             {
-                group.alpha = 1f;
-                group.interactable = false;
-                group.blocksRaycasts = false;
+                return;
             }
 
             if (titleText != null)

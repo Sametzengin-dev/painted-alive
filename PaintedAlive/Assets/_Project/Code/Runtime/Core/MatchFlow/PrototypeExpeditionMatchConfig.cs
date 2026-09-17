@@ -9,7 +9,7 @@ namespace PaintedAlive.Core.MatchFlow
     {
         [Header("Match Timing")]
         [SerializeField, Min(0f)] private float preparationDuration = 4f;
-        [SerializeField, Min(5f)] private float activeDuration = 300f;
+        [SerializeField, Min(5f)] private float activeDuration = 900f;
         [SerializeField] private bool autoStartOnPlay = true;
 
         [Header("World Lock")]

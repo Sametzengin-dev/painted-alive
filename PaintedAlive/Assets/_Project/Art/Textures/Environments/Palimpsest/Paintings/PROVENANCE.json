@@ -1,0 +1,30 @@
+[
+  {
+    "name": "ART_Unfinished_Masterwork_01",
+    "prompt": "A single original unfinished oil painting, portrait 2:3 composition, flat full-bleed canvas image for a video game texture, no frame and no room. A large contemplative woman in charcoal and pale umber underdrawing, face in three quarter view, shoulders and folded hands, draped cloth and broad erased architectural sketches; antique gesso canvas, rubbed-out earlier faces under a mature melancholic portrait. Broad incomplete brushwork in warm ivory, charcoal, faded ochre, muted crimson and very restrained ultramarine. Aged oil surface with scumbling and fine canvas weave, museum atelier tonal study. Most outer edges unfinished raw linen. Sophisticated anatomy, sober and theatrical, high detail but broad tonal readability. Entire image is the artwork, orthographic straight on, no lettering, no watermark. Invent a new person and composition, no copying any known painting.",
+    "provider": "host-native image_gen",
+    "source_path": "C:\\Users\\samet\\.codex\\generated_images\\01a0a30d-167f-70f2-9eaf-5283f8c3c02c\\exec-fa21aae3-59c1-4df4-828b-2e934cf3a0e0.png",
+    "destination": "Textures/Paintings/ART_Unfinished_Masterwork_01.png"
+  },
+  {
+    "name": "ART_Landscape_01",
+    "prompt": "A single original melancholic oil landscape, portrait 2:3 full bleed flat image for an in-world painting texture, no frame, no room, no text. Vast ruined atelier towers and narrow classical stone bridges above a deep misty river, distant warm ivory sky and impossible painter scaffolds. Composition pulls the eye through a tall arched opening towards a tiny sunlit destination. Restrained gray blue, burnt ochre, aged ivory, dark walnut shadows. Mature old oil paint brushwork, subtle cracking, lower edge partly unfinished with graphite construction marks. Museum-quality original fantasy architectural oil painting, atmospheric tonal depth. No famous artwork reproduction, no glowing portal, no vivid rainbow, no characters.",
+    "provider": "host-native image_gen",
+    "source_path": "C:\\Users\\samet\\.codex\\generated_images\\01a0a30d-167f-70f2-9eaf-5283f8c3c02c\\exec-0bc31b9d-932d-4bb3-904e-c5d2c41f9cb5.png",
+    "destination": "Textures/Paintings/ART_Landscape_01.png"
+  },
+  {
+    "name": "ART_Underpaint_Figure_01",
+    "prompt": "A single original antique artist's unfinished study on aged ivory canvas, portrait 2:3, entire image full bleed artwork texture, orthographic straight-on. Layered charcoal head and shoulder studies of two imaginary adult figures, one large central solemn face with downcast eyes, a second erased profile behind it, loose hand anatomy sketch near bottom, perspective construction lines crossing raw gesso, faint grid and registration crosses. Sparse ochre wash and desaturated blue-gray paint blocks; much of canvas remains pale parchment. Mature masterful charcoal drawing with rubbed smudges, scumbled half erased oil paint. Strong broad tonal shapes, not detailed writing. No frame, no room, no labels, no watermark; entirely original.",
+    "provider": "host-native image_gen",
+    "source_path": "C:\\Users\\samet\\.codex\\generated_images\\01a0a30d-167f-70f2-9eaf-5283f8c3c02c\\exec-da35c2fd-b999-42c0-be8f-2cae410eda33.png",
+    "destination": "Textures/Paintings/ART_Underpaint_Figure_01.png"
+  },
+  {
+    "name": "ART_Architecture_Study_01",
+    "prompt": "An original unfinished classical architectural oil study on aged linen, portrait 2:3. Full bleed artwork texture flat straight on, no physical frame or wall. Three massive arches drawn in graphite perspective, foreground arch half painted in pale gesso, a long stairway leading to a distant ochre doorway, erased older compositions and charcoal plumb lines. Warm gray and charcoal, muted ultramarine washes and aged ivory. Quiet mature atelier mood, sophisticated brush strokes and palette knife scraping, raw linen showing around edges. No readable lettering, no watermark, no neon, no famous painting copied.",
+    "provider": "host-native image_gen",
+    "source_path": "C:\\Users\\samet\\.codex\\generated_images\\01a0a30d-167f-70f2-9eaf-5283f8c3c02c\\exec-88febbc5-00e7-4b62-848e-dbd32307e1cf.png",
+    "destination": "Textures/Paintings/ART_Architecture_Study_01.png"
+  }
+]

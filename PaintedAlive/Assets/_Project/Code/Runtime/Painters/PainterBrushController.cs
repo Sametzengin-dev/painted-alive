@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using PaintedAlive.Paint;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -77,6 +78,9 @@ namespace PaintedAlive.Painters
         private OilStrokeShape activeShape =
             OilStrokeShape.Wall;
 
+        public Camera OutputCamera => outputCamera;
+        public LayerMask PaintSurfaceMask => paintSurfaceMask;
+
         public bool IsPreviewing =>
             state == BrushState.Previewing;
 
@@ -113,10 +117,61 @@ namespace PaintedAlive.Painters
 
         private void Awake()
         {
+            paintSurfaceMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    paintSurfaceMask);
+
             brushPropertyBlock =
                 new MaterialPropertyBlock();
 
             ClearPreview();
+        }
+
+        public void IncludeEnvironmentSurfaceLayers()
+        {
+            paintSurfaceMask =
+                PainterEnvironmentLayerUtility.ExpandSurfaceMask(
+                    paintSurfaceMask);
+        }
+
+        public bool ApplyReplicatedStroke(
+            Vector3[] points,
+            OilStrokeShape shape,
+            OilStrokePressureProfile pressureProfile)
+        {
+            if (strokeSystem == null ||
+                points == null ||
+                points.Length < 2)
+            {
+                return false;
+            }
+
+            if (!strokeSystem.BeginStroke(
+                    points[0],
+                    shape,
+                    pressureProfile))
+            {
+                return false;
+            }
+
+            int accepted = 1;
+            for (int index = 1; index < points.Length; index++)
+            {
+                if (strokeSystem.AppendStrokePoint(points[index]))
+                    accepted++;
+            }
+
+            strokeSystem.EndStroke();
+            return accepted >= 2;
+        }
+
+        public void ApplyReplicatedClear()
+        {
+            if (strokeSystem != null)
+                strokeSystem.ClearAllStrokes();
+
+            if (strokeBudget != null)
+                strokeBudget.ResetBudget();
         }
 
         private void OnEnable()
@@ -144,6 +199,13 @@ namespace PaintedAlive.Painters
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+            {
+                CancelCurrentInteraction();
+                SetBrushVisible(false);
+                return;
+            }
+
             if (outputCamera == null ||
                 strokeSystem == null ||
                 pigmentReservoir == null)
@@ -194,6 +256,9 @@ namespace PaintedAlive.Painters
 
                 if (strokeBudget != null)
                     strokeBudget.ResetBudget();
+
+                PaintedAliveNetworkGameplayBridge
+                    .NotifyLocalOilStrokeClear();
 
                 return;
             }
@@ -427,10 +492,21 @@ namespace PaintedAlive.Painters
             if (strokeBudget != null)
                 strokeBudget.NotifyStrokeCommitted();
 
+            Vector3[] committedPoints =
+                previewPoints.ToArray();
+            OilStrokePressureProfile committedProfile =
+                CurrentPressureProfile;
+            OilStrokeShape committedShape = activeShape;
+
             pigmentReservoir.SetConsuming(false);
             state = BrushState.Idle;
 
             ClearPreview();
+
+            PaintedAliveNetworkGameplayBridge.NotifyLocalOilStroke(
+                committedPoints,
+                committedShape,
+                committedProfile);
         }
 
         private float CalculatePreviewCost()

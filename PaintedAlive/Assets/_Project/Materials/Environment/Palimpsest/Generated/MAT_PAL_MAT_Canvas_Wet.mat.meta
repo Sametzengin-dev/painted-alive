@@ -1,0 +1,11 @@
+fileFormatVersion: 2
+guid: cd45002b94422524696ab4118d816788
+labels:
+- PA_Palimpsest_CUSTOM_SHADER_REQUIRED
+- PA_Palimpsest_TemporaryShaderFallback
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

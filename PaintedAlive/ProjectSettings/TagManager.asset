@@ -15,9 +15,9 @@ TagManager:
   - Figure
   - RestorationPoint
   - ClimbableSurface
-  - 
-  - 
-  - 
+  - PrismaticCollision
+  - WaterVisual
+  - Trampoline
   - 
   - 
   - 

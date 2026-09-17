@@ -1,3 +1,4 @@
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -101,6 +102,7 @@ namespace PaintedAlive.Painters.SideCanvas
         private void LateUpdate()
         {
             bool visible =
+                !PaintedAliveNetworkRoleBridge.GameplayInputSuppressed &&
                 IsConfigured &&
                 controller.IsOpen &&
                 Mouse.current != null;

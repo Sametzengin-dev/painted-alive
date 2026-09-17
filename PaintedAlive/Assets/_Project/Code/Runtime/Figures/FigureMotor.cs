@@ -1,3 +1,5 @@
+using PaintedAlive.Environment.LivingGallery;
+using PaintedAlive.Environment.PrismaticReach;
 using PaintedAlive.Paint;
 using UnityEngine;
 
@@ -35,6 +37,13 @@ namespace PaintedAlive.Figures
         [SerializeField, Range(0.1f, 1f)]
         private float equipmentMovementMultiplier = 1f;
 
+        [Header("Environment Surface - Runtime")]
+        [SerializeField, Range(0.1f, 1f)]
+        private float environmentMovementMultiplier = 1f;
+
+        [SerializeField, Min(0f)]
+        private float environmentMovementMultiplierRemaining;
+
         private CharacterController characterController;
         private FigureInputReader inputReader;
 
@@ -44,6 +53,13 @@ namespace PaintedAlive.Figures
         private float rotationVelocity;
         private float coyoteTimeRemaining;
         private float jumpBufferRemaining;
+
+        private bool wasGroundedAtFrameStart;
+        private bool traversalLaunchControlActive;
+        private float traversalAirControlInitial = 1f;
+        private float traversalAirControlMultiplier = 1f;
+        private float traversalAirControlElapsed;
+        private float traversalAirControlDuration;
 
         private OilStrokeRuntime currentPaintSurface;
 
@@ -61,8 +77,28 @@ namespace PaintedAlive.Figures
             characterController != null &&
             characterController.isGrounded;
 
+        public float VerticalVelocity =>
+            verticalVelocity;
+
+        public float Gravity =>
+            config != null
+                ? config.Gravity
+                : 0f;
+
+        public bool WasGroundedAtFrameStart =>
+            wasGroundedAtFrameStart;
+
+        public bool TraversalLaunchControlActive =>
+            traversalLaunchControlActive;
+
+        public float TraversalAirControlMultiplier =>
+            traversalAirControlMultiplier;
+
         public float EquipmentMovementMultiplier =>
             equipmentMovementMultiplier;
+
+        public float EnvironmentMovementMultiplier =>
+            environmentMovementMultiplier;
 
         private void Awake()
         {
@@ -104,9 +140,15 @@ namespace PaintedAlive.Figures
         {
             float deltaTime = Time.deltaTime;
 
+            wasGroundedAtFrameStart =
+                characterController != null &&
+                characterController.isGrounded;
+
             UpdatePaintSurfaceContact(deltaTime);
+            UpdateEnvironmentMovementMultiplier(deltaTime);
             UpdateGroundTimers(deltaTime);
             UpdateJumpBuffer(deltaTime);
+            UpdateTraversalLaunchControl(deltaTime);
             UpdateHorizontalVelocity(deltaTime);
             UpdateVerticalVelocity(deltaTime);
             UpdateExternalVelocity(deltaTime);
@@ -139,6 +181,28 @@ namespace PaintedAlive.Figures
             ResetMotion();
         }
 
+        /// <summary>
+        /// Applies an authoritative/shared network pose while preserving the
+        /// existing CharacterController ownership model. Used only by the M56
+        /// friend-test network foundation on peers which are not currently the
+        /// active Figure, and for hard reconciliation on the Figure peer.
+        /// </summary>
+        public void ApplyNetworkPose(
+            Vector3 worldPosition,
+            Quaternion worldRotation,
+            Vector3 networkVelocity)
+        {
+            Teleport(
+                worldPosition,
+                worldRotation);
+
+            horizontalVelocity = Vector3.ProjectOnPlane(
+                networkVelocity,
+                Vector3.up);
+            verticalVelocity = networkVelocity.y;
+            externalVelocity = Vector3.zero;
+        }
+
         public void ResetMotion()
         {
             horizontalVelocity = Vector3.zero;
@@ -147,10 +211,65 @@ namespace PaintedAlive.Figures
             rotationVelocity = 0f;
             coyoteTimeRemaining = 0f;
             jumpBufferRemaining = 0f;
+            wasGroundedAtFrameStart = false;
+            traversalLaunchControlActive = false;
+            traversalAirControlInitial = 1f;
+            traversalAirControlMultiplier = 1f;
+            traversalAirControlElapsed = 0f;
+            traversalAirControlDuration = 0f;
 
             currentPaintSurface = null;
             currentPaintSurfaceNormal = Vector3.up;
             paintSurfaceContactRemaining = 0f;
+
+            environmentMovementMultiplier = 1f;
+            environmentMovementMultiplierRemaining = 0f;
+        }
+
+        /// <summary>
+        /// Applies a controller-native traversal launch without replacing the
+        /// existing CharacterController movement loop. Gravity, camera and
+        /// animation continue to use the normal FigureMotor state.
+        /// </summary>
+        public void ApplyTraversalLaunch(
+            Vector3 launchVelocity,
+            float initialHorizontalSteeringFactor,
+            float steeringRestoreDuration)
+        {
+            if (!isActiveAndEnabled || config == null)
+            {
+                return;
+            }
+
+            horizontalVelocity =
+                Vector3.ProjectOnPlane(
+                    launchVelocity,
+                    Vector3.up);
+
+            verticalVelocity =
+                launchVelocity.y;
+
+            // A traversal launch owns the intended ballistic velocity.
+            // Old knockback/external motion must not bend the authored arc.
+            externalVelocity = Vector3.zero;
+
+            coyoteTimeRemaining = 0f;
+            jumpBufferRemaining = 0f;
+
+            traversalAirControlInitial =
+                Mathf.Clamp01(
+                    initialHorizontalSteeringFactor);
+
+            traversalAirControlMultiplier =
+                traversalAirControlInitial;
+
+            traversalAirControlElapsed = 0f;
+            traversalAirControlDuration =
+                Mathf.Max(
+                    0.05f,
+                    steeringRestoreDuration);
+
+            traversalLaunchControlActive = true;
         }
 
         public void AddExternalImpulse(
@@ -190,6 +309,82 @@ namespace PaintedAlive.Figures
         {
             equipmentMovementMultiplier =
                 Mathf.Clamp(multiplier, 0.1f, 1f);
+        }
+
+        /// <summary>
+        /// Refreshes a short-lived movement multiplier supplied by a physical
+        /// environment surface. Living Gallery Drying Paper calls this from the
+        /// CharacterController hit callback, so the modifier is intentionally
+        /// time-buffered rather than stored as permanent surface ownership.
+        /// </summary>
+        public void RefreshEnvironmentMovementMultiplier(
+            float multiplier,
+            float holdSeconds)
+        {
+            environmentMovementMultiplier =
+                Mathf.Clamp(multiplier, 0.1f, 1f);
+
+            environmentMovementMultiplierRemaining =
+                Mathf.Max(
+                    environmentMovementMultiplierRemaining,
+                    Mathf.Max(0f, holdSeconds));
+        }
+
+        private void UpdateEnvironmentMovementMultiplier(
+            float deltaTime)
+        {
+            if (environmentMovementMultiplierRemaining <= 0f)
+            {
+                environmentMovementMultiplier = 1f;
+                environmentMovementMultiplierRemaining = 0f;
+                return;
+            }
+
+            environmentMovementMultiplierRemaining =
+                Mathf.Max(
+                    0f,
+                    environmentMovementMultiplierRemaining -
+                    Mathf.Max(0f, deltaTime));
+
+            if (environmentMovementMultiplierRemaining <= 0f)
+            {
+                environmentMovementMultiplier = 1f;
+            }
+        }
+
+        private void UpdateTraversalLaunchControl(
+            float deltaTime)
+        {
+            if (!traversalLaunchControlActive)
+            {
+                traversalAirControlMultiplier = 1f;
+                return;
+            }
+
+            traversalAirControlElapsed += deltaTime;
+
+            float t = Mathf.Clamp01(
+                traversalAirControlElapsed /
+                Mathf.Max(
+                    0.05f,
+                    traversalAirControlDuration));
+
+            // SmoothStep avoids a visible input-authority snap while the
+            // ballistic launch hands normal air steering back to the player.
+            float smoothT =
+                t * t * (3f - 2f * t);
+
+            traversalAirControlMultiplier =
+                Mathf.Lerp(
+                    traversalAirControlInitial,
+                    1f,
+                    smoothT);
+
+            if (t >= 1f)
+            {
+                traversalLaunchControlActive = false;
+                traversalAirControlMultiplier = 1f;
+            }
         }
 
         private void UpdateExternalVelocity(
@@ -296,6 +491,7 @@ namespace PaintedAlive.Figures
             }
 
             maximumSpeed *= equipmentMovementMultiplier;
+            maximumSpeed *= environmentMovementMultiplier;
 
             maximumSpeed *= speedMultiplier;
 
@@ -308,7 +504,11 @@ namespace PaintedAlive.Figures
 
             float acceleration;
 
-            if (characterController.isGrounded)
+            bool useAirMovement =
+                !characterController.isGrounded ||
+                traversalLaunchControlActive;
+
+            if (!useAirMovement)
             {
                 acceleration = hasMovementInput
                     ? config.GroundAcceleration *
@@ -319,7 +519,8 @@ namespace PaintedAlive.Figures
             else
             {
                 acceleration = hasMovementInput
-                    ? config.AirAcceleration
+                    ? config.AirAcceleration *
+                      traversalAirControlMultiplier
                     : 0f;
             }
 
@@ -333,6 +534,7 @@ namespace PaintedAlive.Figures
             }
 
             if (characterController.isGrounded &&
+                !traversalLaunchControlActive &&
                 slideAcceleration > 0f)
             {
                 Vector3 downhillDirection =
@@ -359,6 +561,7 @@ namespace PaintedAlive.Figures
                 clarityState.CanJump;
 
             bool canJump =
+                !traversalLaunchControlActive &&
                 jumpBufferRemaining > 0f &&
                 coyoteTimeRemaining > 0f &&
                 clarityAllowsJump;
@@ -474,6 +677,21 @@ namespace PaintedAlive.Figures
         private void OnControllerColliderHit(
             ControllerColliderHit hit)
         {
+            // Trampoline contact is evaluated from the existing
+            // CharacterController collision callback so side/underside
+            // contacts can be rejected using the real contact normal.
+            PrismaticReachTrampolineSurface
+                .TryHandleControllerHit(
+                    this,
+                    hit);
+
+            // Living Gallery wet/dry paper supplies a short-lived speed
+            // multiplier through the same controller-native contact path.
+            DryingPaperSurface
+                .TryHandleControllerHit(
+                    this,
+                    hit);
+
             if (hit.normal.y < 0.35f)
             {
                 return;
@@ -573,6 +791,17 @@ namespace PaintedAlive.Figures
                     equipmentMovementMultiplier,
                     0.1f,
                     1f);
+
+            environmentMovementMultiplier =
+                Mathf.Clamp(
+                    environmentMovementMultiplier,
+                    0.1f,
+                    1f);
+
+            environmentMovementMultiplierRemaining =
+                Mathf.Max(
+                    0f,
+                    environmentMovementMultiplierRemaining);
         }
     }
 }

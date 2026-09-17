@@ -693,7 +693,7 @@ namespace PaintedAlive.Core.Playtests
                 accepted = accepted,
                 requiredOutcomeCount = config != null ? config.RequiredDistinctOutcomes : 3,
                 passedOutcomeCount = passedOutcomeCount,
-                configuredDuration = config != null ? config.ExpectedMatchDuration : 300f,
+                configuredDuration = config != null ? config.ExpectedMatchDuration : 900f,
                 actualRunningDuration = runningElapsed,
                 remainingTime = matchController != null ? matchController.TimeRemaining : 0f,
                 finalJourneyScore = scoreTracker != null ? scoreTracker.TotalScore : 0,

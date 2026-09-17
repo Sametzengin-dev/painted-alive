@@ -1,3 +1,4 @@
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,7 +17,8 @@ namespace PaintedAlive.Figures
         {
             get
             {
-                if (moveAction == null || moveAction.action == null)
+                if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed ||
+                    moveAction == null || moveAction.action == null)
                 {
                     return Vector2.zero;
                 }
@@ -31,7 +33,8 @@ namespace PaintedAlive.Figures
         {
             get
             {
-                if (lookAction == null || lookAction.action == null)
+                if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed ||
+                    lookAction == null || lookAction.action == null)
                 {
                     return Vector2.zero;
                 }
@@ -41,11 +44,13 @@ namespace PaintedAlive.Figures
         }
 
         public bool JumpPressedThisFrame =>
+            !PaintedAliveNetworkRoleBridge.GameplayInputSuppressed &&
             jumpAction != null &&
             jumpAction.action != null &&
             jumpAction.action.WasPressedThisFrame();
 
         public bool SprintHeld =>
+            !PaintedAliveNetworkRoleBridge.GameplayInputSuppressed &&
             sprintAction != null &&
             sprintAction.action != null &&
             sprintAction.action.IsPressed();

@@ -68,11 +68,21 @@ namespace PaintedAlive.Paint.Ink.Lifecycle
                 return;
             }
 
-            if (!creature.HasGlyph(InkGlyphType.Eye))
+            InkCreatureDefinition definition = creature.Definition;
+            bool requiresEye =
+                definition != null &&
+                definition.ContainsGlyph(InkGlyphType.Eye);
+            bool requiresFoot =
+                definition != null &&
+                definition.ContainsGlyph(InkGlyphType.Foot);
+
+            if (requiresEye &&
+                !creature.HasGlyph(InkGlyphType.Eye))
             {
                 BeginDeath(InkCreatureDeathCause.EyeGlyphLost);
             }
-            else if (!creature.HasGlyph(InkGlyphType.Foot))
+            else if (requiresFoot &&
+                     !creature.HasGlyph(InkGlyphType.Foot))
             {
                 BeginDeath(InkCreatureDeathCause.FootGlyphLost);
             }
@@ -194,7 +204,7 @@ namespace PaintedAlive.Paint.Ink.Lifecycle
                     controller.PossessedCreature == creature)
                 {
                     controller.ExitPossession(
-                        "Critical Lekebacak glyph was cut");
+                        "Critical Ink creature glyph was cut");
                 }
             }
         }

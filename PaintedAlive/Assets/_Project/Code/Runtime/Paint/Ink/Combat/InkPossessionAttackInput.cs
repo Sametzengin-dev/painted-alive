@@ -1,4 +1,5 @@
 using PaintedAlive.Paint.Ink.Possession;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -37,7 +38,8 @@ namespace PaintedAlive.Paint.Ink.Combat
 
         private void Update()
         {
-            if (possessionController == null ||
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed ||
+                possessionController == null ||
                 !possessionController.IsPossessing ||
                 possessionController.PossessedCreature == null ||
                 IsEditingText())

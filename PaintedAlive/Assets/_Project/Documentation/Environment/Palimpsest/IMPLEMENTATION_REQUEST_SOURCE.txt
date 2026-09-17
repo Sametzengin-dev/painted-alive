@@ -1,0 +1,1154 @@
+Implement THE PALIMPSEST in the REAL existing Painted Alive Unity project.
+
+I am providing the finalized Unity export package together with:
+
+- UNITY_HANDOFF_PALIMPSEST.md
+- UNITY_BINDINGS_PALIMPSEST.json
+- The_Palimpsest_Visual.fbx
+- The_Palimpsest_Collision.fbx
+- The_Palimpsest_Gameplay.fbx
+- textures
+- URP material mapping / README
+
+IMPORTANT SOURCE-OF-TRUTH RULE:
+
+UNITY_BINDINGS_PALIMPSEST.json
+= AUTHORITATIVE SOURCE FOR OBJECT NAMES, HELPERS, PIVOTS, COLLISION STATES, ROUTE REFERENCES AND BINDINGS.
+
+UNITY_HANDOFF_PALIMPSEST.md
+= AUTHORITATIVE SOURCE FOR GAMEPLAY BEHAVIOR.
+
+DO NOT infer object names.
+DO NOT rename Palimpsest objects.
+DO NOT invent replacement helpers.
+DO NOT reinterpret the mechanic designs if the handoff already defines them.
+
+If the handoff and JSON differ, inspect the actual imported object names before making any change and report the discrepancy.
+
+==================================================
+FIRST — INSPECT THE EXISTING PAINTED ALIVE PROJECT
+==================================================
+
+Before writing code:
+
+inspect the actual Unity project architecture.
+
+Identify:
+
+- existing player / Figure controller
+- Painter architecture
+- multiplayer/networking system
+- world interaction architecture
+- existing environment/map architecture
+- existing collision layers
+- existing gameplay trigger layers
+- existing fall/respawn implementation
+- existing scene bootstrap
+- existing URP setup
+- existing Prismatic Reach trampoline implementation
+- existing map transition architecture
+
+REUSE existing abstractions wherever appropriate.
+
+DO NOT:
+
+- replace the player controller
+- introduce a second movement system
+- introduce a parallel networking framework
+- rewrite working Painter systems
+- break Atelier Heights
+- break Prismatic Reach
+- break Living Gallery
+- change existing global gravity
+- add unnecessary Rigidbody components
+- commit or push unless explicitly requested
+
+==================================================
+IMPORT THE PALIMPSEST
+==================================================
+
+Physically import the supplied assets into the real Unity project's Assets directory.
+
+Use the existing project folder conventions.
+
+A reasonable location if compatible with the repository is:
+
+Assets/Art/Environments/The_Palimpsest/
+
+with subfolders for:
+
+Models
+Materials
+Textures
+Prefabs
+
+and gameplay code under the project's existing gameplay/environment architecture.
+
+Do NOT leave FBXs referenced from an external Windows folder.
+
+The project must own its imported asset copies.
+
+==================================================
+CREATE THE ROOT
+==================================================
+
+Create a root such as:
+
+The_Palimpsest_Root
+
+with:
+
+The_Palimpsest_Root
+    Visual
+    Collision
+    Gameplay
+
+Instantiate:
+
+The_Palimpsest_Visual
+The_Palimpsest_Collision
+The_Palimpsest_Gameplay
+
+The three exported FBXs share the same authored coordinate system.
+
+Their internal alignment MUST remain unchanged.
+
+Expected import:
+
+Position = 0,0,0
+Rotation = 0,0,0
+Scale = 1,1,1
+
+relative to the Palimpsest root.
+
+If the entire map must later be moved to connect to the previous region,
+move ONLY The_Palimpsest_Root.
+
+Do NOT independently offset Visual / Collision / Gameplay.
+
+==================================================
+VISUAL
+==================================================
+
+Use:
+
+The_Palimpsest_Visual.fbx
+
+for visible environment geometry.
+
+Do NOT automatically generate full-map collision from Visual.
+
+Preserve interactive objects separately.
+
+Especially do not merge or destroy independent control of:
+
+INT_Fold_A
+INT_GreatFold
+GreatFold_LowerLeaf
+
+Underpainting state geometry
+
+Smear_A_WetLayer
+Smear_B_WetLayer
+
+Perspective_Aligned_Connection
+
+Perspective frame objects
+
+Backside canvas objects
+
+Apply the supplied URP material mapping and painting textures.
+
+There must be:
+
+- no pink/magenta materials
+- no missing textures
+- no accidental default materials
+
+Do not waste time on final lighting polish until gameplay integration is working.
+
+==================================================
+COLLISION
+==================================================
+
+Use:
+
+The_Palimpsest_Collision.fbx
+
+as the authored collision source.
+
+Do NOT duplicate collision from visual meshes.
+
+Use the project's existing environment/ground/interactive collision layers.
+
+Preserve collision state families.
+
+Only the correct state collider should be active for stateful mechanisms.
+
+Critical collision families include:
+
+Fold A:
+COL_Fold_A_Open
+COL_Fold_A_Folded
+COL_Junction_Main_Open
+COL_Junction_Main_Folded
+
+Great Fold:
+COL_GreatFold_State_A
+COL_GreatFold_State_B
+COL_Junction_Main_A
+COL_Junction_Main_B
+
+Underpainting:
+COL_Underpaint_A_Current
+COL_Underpaint_A_Revealed
+COL_Underpaint_B_Current
+COL_Underpaint_B_Revealed
+
+Smear:
+COL_Smear_A_Extended
+COL_Smear_A_Retracted
+COL_Smear_B_Extended
+COL_Smear_B_Retracted
+
+Perspective:
+COL_Perspective_Aligned
+COL_Perspective_Misaligned
+
+Backside:
+COL_Backside_* family
+
+Never leave incompatible overlapping state colliders enabled simultaneously.
+
+==================================================
+GAMEPLAY FBX
+==================================================
+
+Use:
+
+The_Palimpsest_Gameplay.fbx
+
+for pivots, helpers, state references, route references and gameplay transforms.
+
+Do NOT render helper objects.
+
+Do NOT delete helpers because they have no renderer.
+
+The binding JSON is authoritative for connecting them.
+
+==================================================
+IMPLEMENTATION ORDER
+==================================================
+
+Implement and validate the systems in this order:
+
+1. Palimpsest binder + import setup
+2. Fall / Respawn
+3. Fold A
+4. Great Fold
+5. Backside Works
+6. Underpainting A/B
+7. Smear A/B
+8. Perspective Exit
+9. Painter interaction wiring
+10. Multiplayer/network synchronization
+11. final controller playtest
+12. performance/profile pass
+
+Do not try to implement everything as one monolithic controller.
+
+==================================================
+PALIMPSEST GAMEPLAY BINDER
+==================================================
+
+Create an environment binder such as:
+
+PalimpsestGameplayBinder.cs
+
+Its job is to connect the imported scene objects to the gameplay systems.
+
+Prefer serialized/direct Transform references in the configured scene/prefab.
+
+UNITY_BINDINGS_PALIMPSEST.json may be used by an Editor setup utility to automatically configure bindings.
+
+Do NOT repeatedly search scene objects by string at runtime.
+
+If appropriate, create an Editor setup tool that:
+
+- reads UNITY_BINDINGS_PALIMPSEST.json
+- locates imported objects
+- attaches/configures components
+- reports missing names
+- does not silently create fake replacements
+
+After setup, final runtime references should be explicit.
+
+==================================================
+SYSTEM — FOLD A
+==================================================
+
+Use the exact handoff objects.
+
+Primary:
+
+INT_Fold_A
+GP_Fold_A_Pivot
+GP_Fold_A_State_Open
+GP_Fold_A_State_Folded
+GP_Fold_A_Clearance
+PAINTER_Fold_A_Control
+
+Routes:
+
+GP_Fold_A_Route_A
+GP_Fold_A_Route_B
+
+Component:
+
+CanvasFoldSystem
+
+Authored movement:
+
+65° local X around GP_Fold_A_Pivot.
+
+States:
+
+OPEN
+TRANSITIONING
+FOLDED
+
+Painter activation must first telegraph.
+
+Authored telegraph concept:
+approximately 2.5 seconds.
+
+Then rotate around the actual exported pivot.
+
+Do NOT rotate around mesh center.
+
+The route topology must change.
+
+OPEN:
+normal route exists.
+
+FOLDED:
+normal path becomes harder/unavailable while authored counter-route becomes usable.
+
+Figure counterplay must remain.
+
+A Figure may:
+- use the moving fold
+- use the newly exposed route
+- time traversal during transition
+
+Never teleport a Figure.
+
+Before movement, use GP_Fold_A_Clearance to ensure the movement sweep does not crush/trap a Figure.
+
+Integrate with the existing player movement system rather than forcing physics onto the player.
+
+==================================================
+SYSTEM — GREAT FOLD
+==================================================
+
+Use:
+
+INT_GreatFold
+GreatFold_LowerLeaf
+GP_GreatFold_Pivot
+GP_GreatFold_State_A
+GP_GreatFold_State_B
+GP_GreatFold_Clearance
+PAINTER_GreatFold_Control
+
+Route references:
+
+GP_GreatFold_Route_A
+GP_GreatFold_Route_B
+
+Relevant routes include:
+
+Main
+Exposed_Shortcut
+Smear_B_Shortcut
+
+Implement using:
+
+CanvasFoldSystem
+
+or a specialized:
+
+GreatFoldController
+
+only if the extra lower-leaf behavior cleanly requires it.
+
+Authored rotation:
+65° local X.
+
+Do NOT redesign the Great Fold.
+
+The Great Fold may:
+
+- remove an old traversal line
+- become a ramp
+- expose upper-frame traversal
+- expose backside travel
+- enable access toward Smear B
+
+There must always be Figure counterplay.
+
+No instantaneous unavoidable trap.
+
+Use GP_GreatFold_Clearance for movement safety.
+
+==================================================
+SYSTEM — BACKSIDE WORKS
+==================================================
+
+Use:
+
+Backside_MainCanvas
+Backside_Secondary
+
+GP_Backside_Entry
+GP_Backside_Exit
+GP_Backside_Region
+
+GP_Backside_Trace_A
+GP_Backside_Trace_B
+GP_Backside_Trace_C
+
+Collision:
+
+COL_Backside_*
+
+Route:
+
+Backside_Service
+
+Approximate authored traversal:
+46.2485 m.
+
+Create/reuse:
+
+CanvasBacksideRegion
+CanvasBacksideTraceSystem
+
+IMPORTANT GAMEPLAY RULE:
+
+When a Figure moves behind the canvas,
+the Painter must NOT receive exact positional information.
+
+But the Figure is NOT completely invisible.
+
+Painter receives coarse/uncertain information such as:
+
+- approximate canvas deformation
+- dust/pigment displacement
+- vague trace
+- subtle front-canvas bulge
+
+Each trace helper has approximately:
+
+uncertainty_radius_m = 3
+
+according to the handoff.
+
+Do NOT expose the exact network transform of the Figure through this visual system.
+
+The Figure should be able to mislead Painter by changing routes behind the canvas.
+
+Preserve player camera and traversal normally.
+
+Do not use teleportation to move between front/back.
+
+==================================================
+SYSTEM — UNDERPAINTING A
+==================================================
+
+Use:
+
+INT_Underpaint_A
+
+CURRENT_LAYER_A
+CURRENT_LAYER_A_*
+
+UNDERPAINT_LAYER_A_Arch*
+UNDERPAINT_LAYER_A_Jamb*
+
+COL_Underpaint_A_Current
+COL_Underpaint_A_Revealed
+
+GP_Underpaint_A_Current
+GP_Underpaint_A_Revealed
+GP_Underpaint_A_Reveal
+
+PAINTER_Underpaint_A_Control
+
+Component:
+
+UnderpaintingRevealSystem
+
+States:
+
+CURRENT
+TRANSITIONING
+REVEALED
+
+Authored reveal translation:
+[0,0,5] meters
+
+Use the actual imported transforms from the binding file.
+
+When REVEALED:
+
+switch visuals appropriately
+and switch to exactly the correct collision state.
+
+Do NOT leave Current and Revealed collision blockers active simultaneously.
+
+The underpainting reveal must create actual traversal geometry.
+
+It is NOT only a shader transition.
+
+==================================================
+SYSTEM — UNDERPAINTING B
+==================================================
+
+Same rules for:
+
+INT_Underpaint_B
+
+CURRENT_LAYER_B
+CURRENT_LAYER_B_*
+
+UNDERPAINT_LAYER_B_Arch*
+UNDERPAINT_LAYER_B_Jamb*
+
+COL_Underpaint_B_Current
+COL_Underpaint_B_Revealed
+
+GP_Underpaint_B_Current
+GP_Underpaint_B_Revealed
+GP_Underpaint_B_Reveal
+
+PAINTER_Underpaint_B_Control
+
+State must be independently network synchronized.
+
+==================================================
+SYSTEM — SMEAR A
+==================================================
+
+Use:
+
+Smear_A_WetLayer
+Smear_A_SupportTrack*
+Smear_A_ImpastoRidge*
+INT_Smear_A
+
+GP_Smear_A_Extended
+GP_Smear_A_Retracted
+GP_Smear_A_Clearance
+
+COL_Smear_A_Extended
+COL_Smear_A_Retracted
+
+PAINTER_Smear_A_Control
+
+Material:
+
+MAT_Canvas_Wet
+
+Shape key:
+
+Smear_A_WetLayer.Retracted
+
+Authored mapping:
+
+0 = EXTENDED
+1 = RETRACTED
+
+Authored travel:
+7 meters along helper delta.
+
+Component:
+
+PaintSmearSurface
+
+States:
+
+RETRACTED
+MOVING
+EXTENDED
+
+This must visually behave like thick paint being physically dragged.
+
+Do NOT implement it as a generic platform simply moving 7 m.
+
+Coordinate:
+
+- wet layer deformation
+- impasto ridges
+- scrape hardware
+- collision state
+- route availability
+
+Figure may ride/time the transformation if current movement architecture supports it safely.
+
+No teleport.
+
+==================================================
+SYSTEM — SMEAR B
+==================================================
+
+Use:
+
+Smear_B_WetLayer
+Smear_B_SupportTrack*
+Smear_B_Junction_0
+Smear_B_Junction_1
+Smear_B_ImpastoRidge*
+INT_Smear_B
+
+GP_Smear_B_Extended
+GP_Smear_B_Retracted
+GP_Smear_B_Clearance
+
+COL_Smear_B_Extended
+COL_Smear_B_Retracted
+
+PAINTER_Smear_B_Control
+
+Material:
+
+MAT_Canvas_Wet
+
+Shape key:
+
+Smear_B_WetLayer.Retracted
+
+0 = EXTENDED
+1 = RETRACTED
+
+Travel:
+7 m along authored helper delta.
+
+Affected routes:
+
+Smear_B_Shortcut
+Smear_B_Exit
+
+Do not assume Smear B has the same direction or route consequence as Smear A.
+
+Use actual helper transforms.
+
+==================================================
+SYSTEM — PERSPECTIVE EXIT
+==================================================
+
+This is critical.
+
+Use:
+
+INT_Perspective_Frame
+GP_Perspective_Frame_Pivot
+
+GP_Perspective_State_Misaligned
+GP_Perspective_State_Aligned
+
+GP_Perspective_ViewReference
+
+GP_Perspective_Target_A
+GP_Perspective_Target_B
+
+Perspective_Aligned_Connection
+
+COL_Perspective_Aligned
+COL_Perspective_Misaligned
+
+PAINTER_Perspective_Control
+
+GP_EXIT_MAIN
+
+Components:
+
+PerspectiveFrameSystem
+PerspectiveTraversalBridge
+
+Authored misalignment:
+12° Z rotation.
+
+Authored alignment tolerance:
+1.5°.
+
+States:
+
+MISALIGNED
+ALIGNING
+ALIGNED
+
+THIS IS NOT A TELEPORTER.
+
+Do NOT:
+- fade screen
+- warp player
+- teleport player
+- fake traversal
+
+When the authored perspective condition becomes valid,
+the actual physical traversal connection becomes active.
+
+Use:
+
+Frame state
+ViewReference
+Target A
+Target B
+alignment tolerance
+
+to determine validity.
+
+Enable:
+
+Perspective_Aligned_Connection
+and the correct aligned collision
+
+only in the valid state.
+
+Validate using world-space geometry.
+
+Do NOT validate based only on object origins.
+
+==================================================
+SYSTEM — PAINTER WORLD INTERACTIONS
+==================================================
+
+Use existing Painter interaction architecture where possible.
+
+Bindings include:
+
+PAINTER_Fold_A_Control
+PAINTER_GreatFold_Control
+
+PAINTER_Underpaint_Control
+PAINTER_Underpaint_A_Control
+PAINTER_Underpaint_B_Control
+
+PAINTER_Smear_A_Control
+PAINTER_Smear_B_Control
+
+PAINTER_Perspective_Control
+
+Suggested abstraction:
+
+PainterWorldInteraction
+
+but DO NOT create a duplicate architecture if the project already has an equivalent.
+
+Painter interactions must:
+
+- telegraph
+- request activation
+- be validated by network authority
+- change world state
+- preserve Figure counterplay
+
+Painter does NOT directly damage Figures through these systems.
+
+==================================================
+SYSTEM — FALL / RESPAWN
+==================================================
+
+Use:
+
+GP_FallZone_Global
+
+GP_FallZone_01
+GP_FallZone_02
+GP_FallZone_03
+GP_FallZone_04
+GP_FallZone_05
+GP_FallZone_06
+
+GP_Respawn_01
+GP_Respawn_02
+GP_Respawn_03
+GP_Respawn_04
+GP_Respawn_05
+GP_Respawn_06
+
+Region helpers:
+
+GP_Region_01_Stretched_Entrance
+GP_Region_02_Backside_Works
+GP_Region_03_Great_Fold
+GP_Region_04_Underpainting
+GP_Region_05_Smear_Works
+GP_Region_06_Perspective_Exit
+
+Reuse existing FallZone / Respawn implementation if available.
+
+Respawn must never place a Figure:
+
+- inside active fold geometry
+- inside Smear sweep volume
+- inside collision
+- inside its own FallZone
+- on a currently invalid route state
+
+==================================================
+NETWORKING
+==================================================
+
+Use the EXISTING Painted Alive multiplayer architecture.
+
+Do not create a parallel networking layer.
+
+Create/adapt:
+
+PalimpsestNetworkState
+
+only as the environment-state integration layer.
+
+World state must be server authoritative.
+
+Painter requests should go through the existing authority validation.
+
+Persistent states requiring late-join synchronization:
+
+Fold A:
+OPEN
+TRANSITIONING
+FOLDED
+
+Great Fold:
+A
+TRANSITIONING
+B
+
+Underpaint A:
+CURRENT
+TRANSITIONING
+REVEALED
+
+Underpaint B:
+CURRENT
+TRANSITIONING
+REVEALED
+
+Smear A:
+RETRACTED
+MOVING
+EXTENDED
+
+Smear B:
+RETRACTED
+MOVING
+EXTENDED
+
+Perspective:
+MISALIGNED
+ALIGNING
+ALIGNED
+
+Backside:
+occupancy/coarse trace state as required
+
+Late joiners must receive the current environment state before normal gameplay resumes.
+
+==================================================
+ANIMATION / TRANSITION SAFETY
+==================================================
+
+Moving environment geometry must not:
+
+- trap a player inside collision
+- launch a player unpredictably
+- crush a Figure without intended gameplay
+- disconnect the player's movement controller
+- cause permanent grounding failure
+
+Before Fold/Smear changes:
+
+check authored clearance volume.
+
+If occupied in an unsafe way:
+
+use the existing game design's appropriate behavior
+such as delaying transition or maintaining a safe transition.
+
+Do NOT teleport players away as a generic fix.
+
+==================================================
+MATERIALS
+==================================================
+
+Apply the supplied Palimpsest material mapping.
+
+Preserve the generated original paintings.
+
+Do not regenerate the paintings.
+
+Use supplied textures.
+
+Any Blender material classified as:
+
+DIRECT_URP
+
+should use an appropriate URP equivalent.
+
+REBUILD_URP
+
+should be reconstructed from supplied texture/material data.
+
+CUSTOM_SHADER_REQUIRED
+
+should receive a safe temporary URP fallback while preserving the intended future shader hookup.
+
+Do not spend excessive time creating final custom art shaders before gameplay works.
+
+==================================================
+SCENE / PREFAB
+==================================================
+
+Create:
+
+The_Palimpsest.prefab
+
+or the existing project's equivalent map prefab/scene structure.
+
+Keep:
+
+Visual
+Collision
+Gameplay
+
+organized below the Palimpsest root.
+
+If the project uses separate additive map scenes instead of prefabs,
+follow the existing architecture.
+
+Do not invent a new scene-loading system.
+
+==================================================
+TEST SCENE SAFETY
+==================================================
+
+If editing the main gameplay scene is risky:
+
+create a temporary safe integration scene first.
+
+For example:
+
+Palimpsest_Integration_Test
+
+Use:
+
+the REAL Figure controller.
+
+Do not create a substitute movement controller.
+
+Do not bypass networking/bootstrap systems unnecessarily.
+
+==================================================
+PLAYTEST — FIGURE
+==================================================
+
+Using the real Figure controller verify:
+
+- Entry works
+- main route traversable
+- shortcut traversable
+- defensive route traversable
+- Backside entry works
+- Backside exit works
+- stairs/ramps work
+- Fold A state A/B routes work
+- Great Fold state A/B routes work
+- Underpainting A works
+- Underpainting B works
+- Smear A works
+- Smear B works
+- Perspective Exit physically traversable when aligned
+- fall zones work
+- respawns work
+
+Normal Figure:
+
+jump
+gravity
+grounding
+camera
+movement
+
+must remain unchanged outside these environment mechanics.
+
+==================================================
+PLAYTEST — PAINTER
+==================================================
+
+Using the real Painter architecture verify:
+
+- interaction controls are visible/available as intended
+- Fold A telegraph works
+- Great Fold telegraph works
+- Underpaint reveal works
+- Smear controls work
+- Perspective manipulation works
+- Painter cannot directly force unavoidable punishment
+- Figures retain counterplay
+
+For Backside:
+
+verify Painter receives approximate/coarse information,
+not exact Figure tracking.
+
+==================================================
+MULTIPLAYER TEST
+==================================================
+
+Where local/network testing infrastructure permits, verify:
+
+- Painter activation replicates
+- Figure clients see the same Fold state
+- Underpaint state replicates
+- Smear state replicates
+- Perspective state replicates
+- late join receives current environment state
+- remote clients do not run duplicate authority logic
+- no state desynchronization after repeated interactions
+
+==================================================
+PERFORMANCE
+==================================================
+
+Do NOT optimize blindly before functionality is confirmed.
+
+After gameplay passes:
+
+use Unity Profiler / rendering statistics.
+
+Inspect:
+
+- renderer count
+- draw calls
+- batches
+- SetPass calls
+- triangle count
+- collision cost
+- moving mechanism cost
+
+Do not return to Blender solely because there are many imported objects unless profiling proves a problem.
+
+Use safe Unity-side static batching / instancing / LOD strategies consistent with the project's architecture.
+
+Never combine interactive objects.
+
+==================================================
+DO NOT DO
+==================================================
+
+Do NOT:
+
+- redesign the map
+- modify Blender source
+- re-export Blender files unless a genuine export defect is proven
+- rename Palimpsest objects
+- change the authored 65° folds arbitrarily
+- change the authored 7 m Smear travel arbitrarily
+- turn Perspective Exit into teleportation
+- expose exact Backside Figure position to Painter
+- globally modify player gravity
+- globally modify normal jump
+- rewrite the player controller
+- replace networking architecture
+- add an Asset Store movement controller
+- commit/push unless explicitly requested
+
+==================================================
+CONSOLE QUALITY
+==================================================
+
+At completion:
+
+No new relevant errors.
+
+No missing Palimpsest references.
+
+No missing materials/textures.
+
+No unresolved JSON binding whose object exists in the imported package.
+
+Warnings should be investigated rather than silently ignored.
+
+==================================================
+FINAL REPORT
+==================================================
+
+When finished report:
+
+IMPORT:
+- exact Assets paths
+- scene/prefab created
+- Visual import
+- Collision import
+- Gameplay import
+- material/texture result
+
+BINDINGS:
+- total bindings processed
+- successful bindings
+- missing bindings
+- manually resolved bindings
+
+SYSTEMS:
+
+Fold A
+Great Fold
+Backside Works
+Underpaint A
+Underpaint B
+Smear A
+Smear B
+Perspective Exit
+Fall / Respawn
+Painter interactions
+Network state
+
+For EACH:
+- implemented component
+- actual objects bound
+- PASS / FAIL
+- remaining issue if any
+
+PLAYTEST:
+
+- main route
+- shortest route
+- defensive route
+- Fold tests
+- Great Fold tests
+- Backside test
+- Underpainting tests
+- Smear tests
+- Perspective test
+- respawn test
+
+NETWORK:
+
+- authority model used
+- synchronized states
+- late-join result
+- any unresolved multiplayer issue
+
+Also list:
+
+files created
+files modified
+
+Do not commit or push.
+
+ACTUALLY perform the integration and implementation in the existing Unity project.
+
+Do not merely describe the steps.

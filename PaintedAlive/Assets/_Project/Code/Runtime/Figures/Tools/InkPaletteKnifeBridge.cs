@@ -1,5 +1,6 @@
 using PaintedAlive.Figures;
 using PaintedAlive.Paint.Ink;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -84,7 +85,8 @@ namespace PaintedAlive.Figures.Tools
 
         private void Update()
         {
-            if (paletteKnifeController == null ||
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed ||
+                paletteKnifeController == null ||
                 !paletteKnifeController.isActiveAndEnabled ||
                 useToolAction == null ||
                 useToolAction.action == null ||

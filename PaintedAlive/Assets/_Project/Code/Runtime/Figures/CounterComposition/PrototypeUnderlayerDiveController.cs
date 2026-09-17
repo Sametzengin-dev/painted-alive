@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using PaintedAlive.Core.RoleAuthority;
+using PaintedAlive.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -66,6 +67,10 @@ namespace PaintedAlive.Figures.CounterComposition
         [SerializeField]
         private Text controlsText;
 
+        [Header("Focus")]
+        [SerializeField, Min(0f)]
+        private float contextualHudHoldSeconds = 2.5f;
+
         [Header("Runtime Read Only")]
         [SerializeField]
         private PrototypeUnderlayerDiveState state =
@@ -127,6 +132,7 @@ namespace PaintedAlive.Figures.CounterComposition
 
         [SerializeField]
         private string nearestSeam = "None";
+        private float hudVisibleUntilUnscaled;
 
         [SerializeField]
         private string resolvedRole = "Unknown";
@@ -1335,17 +1341,24 @@ namespace PaintedAlive.Figures.CounterComposition
 
         private void RefreshHud()
         {
+            bool relevantNow =
+                figureRoleActive &&
+                (inUnderlayer ||
+                 state == PrototypeUnderlayerDiveState.SurfaceSeamInRange ||
+                 state == PrototypeUnderlayerDiveState.UnderlayerExitInRange ||
+                 state == PrototypeUnderlayerDiveState.SafetyRecovery ||
+                 (nearestSeamDistance >= 0f &&
+                  nearestSeamDistance <= seamUseRadius * 1.15f));
+
             bool visible =
-                figureRoleActive;
+                PrototypeRuntimeHudVisibilityUtility.Hold(
+                    relevantNow,
+                    ref hudVisibleUntilUnscaled,
+                    contextualHudHoldSeconds);
 
-            if (statusGroup != null)
-            {
-                statusGroup.alpha =
-                    visible ? 1f : 0f;
-
-                statusGroup.interactable = false;
-                statusGroup.blocksRaycasts = false;
-            }
+            PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                statusGroup,
+                visible);
 
             if (!visible)
             {

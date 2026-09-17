@@ -1,5 +1,6 @@
 using PaintedAlive.Paint;
 using PaintedAlive.Paint.Watercolor;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -122,6 +123,7 @@ namespace PaintedAlive.Figures.Tools
                 fixativeController != null &&
                 fixativeController.isActiveAndEnabled;
             inputIsHeld =
+                !PaintedAliveNetworkRoleBridge.GameplayInputSuppressed &&
                 useToolAction != null &&
                 useToolAction.action != null &&
                 useToolAction.action.IsPressed();

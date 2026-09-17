@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using PaintedAlive.Core.RoleAuthority;
+using PaintedAlive.Networking.M56;
 using PaintedAlive.UI.UnifiedHUD;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -256,6 +257,9 @@ namespace PaintedAlive.Painters.SideCanvas
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+                return;
+
             RefreshRoleAuthority();
 
             if (!painterRoleActive)

@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using PaintedAlive.Core.RoleAuthority;
+using PaintedAlive.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -68,6 +69,10 @@ namespace PaintedAlive.Figures.CounterComposition
 
         [SerializeField]
         private Text controlsText;
+
+        [Header("Focus")]
+        [SerializeField, Min(0f)]
+        private float contextualHudHoldSeconds = 3f;
 
         [Header("Runtime Read Only")]
         [SerializeField]
@@ -158,6 +163,7 @@ namespace PaintedAlive.Figures.CounterComposition
         private bool motorStateCaptured;
         private float compositionEndsAt;
         private float nextActionAllowedAt;
+        private float hudVisibleUntilUnscaled;
 
         public PrototypeLiveCompositionState State => state;
         public bool FigureRoleActive => figureRoleActive;
@@ -1291,17 +1297,28 @@ namespace PaintedAlive.Figures.CounterComposition
 
         private void RefreshHud()
         {
+            bool anchorLatched =
+                anchorA != null && anchorA.Latched ||
+                anchorB != null && anchorB.Latched;
+
+            bool relevantNow =
+                figureRoleActive &&
+                (composing ||
+                 anchorLatched ||
+                 state == PrototypeLiveCompositionState.SeekingSecondAnchor ||
+                 state == PrototypeLiveCompositionState.ReadyForCommit ||
+                 state == PrototypeLiveCompositionState.SafetyRelease ||
+                 (poseDistance >= 0f && poseDistance <= poseCommitRadius * 1.35f));
+
             bool visible =
-                figureRoleActive;
+                PrototypeRuntimeHudVisibilityUtility.Hold(
+                    relevantNow,
+                    ref hudVisibleUntilUnscaled,
+                    contextualHudHoldSeconds);
 
-            if (statusGroup != null)
-            {
-                statusGroup.alpha =
-                    visible ? 1f : 0f;
-
-                statusGroup.interactable = false;
-                statusGroup.blocksRaycasts = false;
-            }
+            PrototypeRuntimeHudVisibilityUtility.ApplyCanvasGroup(
+                statusGroup,
+                visible);
 
             if (!visible)
             {

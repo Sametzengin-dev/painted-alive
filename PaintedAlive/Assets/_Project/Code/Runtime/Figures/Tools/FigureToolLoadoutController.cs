@@ -1,4 +1,5 @@
 using System;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -64,12 +65,30 @@ namespace PaintedAlive.Figures.Tools
         [SerializeField]
         private bool logToolChanges = true;
 
+        [Header("Runtime Theft State - Read Only")]
+        [SerializeField]
+        private bool toolStolen;
+
+        [SerializeField]
+        private FigureToolId stolenTool;
+
+        [SerializeField]
+        private UnityEngine.Object theftOwner;
+
+        [SerializeField]
+        private string lastTheftReason = "None";
+
         private FigureToolId activeTool;
         private bool initialized;
 
         public FigureToolId ActiveTool => activeTool;
+        public bool IsToolStolen => toolStolen;
+        public FigureToolId StolenTool => stolenTool;
+        public UnityEngine.Object TheftOwner => theftOwner;
+        public string LastTheftReason => lastTheftReason;
 
         public event Action<FigureToolId> ActiveToolChanged;
+        public event Action<FigureToolId, bool> ToolTheftChanged;
 
         private void Awake()
         {
@@ -111,6 +130,14 @@ namespace PaintedAlive.Figures.Tools
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+                return;
+
+            if (toolStolen)
+            {
+                return;
+            }
+
             if (WasPaletteKnifeSelected())
             {
                 SelectTool(FigureToolId.PaletteKnife);
@@ -131,6 +158,12 @@ namespace PaintedAlive.Figures.Tools
 
         private void LateUpdate()
         {
+            if (toolStolen && theftOwner == null)
+            {
+                ForceReturnStolenTool(
+                    "Theft owner was destroyed; safety return");
+            }
+
             if (!SelectionStateMatches())
             {
                 ApplySelection(false);
@@ -139,6 +172,11 @@ namespace PaintedAlive.Figures.Tools
 
         public void SelectTool(FigureToolId tool)
         {
+            if (toolStolen)
+            {
+                return;
+            }
+
             if (initialized && activeTool == tool)
             {
                 return;
@@ -151,18 +189,108 @@ namespace PaintedAlive.Figures.Tools
 
         public bool IsToolActive(FigureToolId tool)
         {
-            return activeTool == tool;
+            return !toolStolen && activeTool == tool;
+        }
+
+        public bool TryStealActiveTool(
+            UnityEngine.Object ownerToken,
+            out FigureToolId stolen)
+        {
+            stolen = activeTool;
+
+            if (!Application.isPlaying ||
+                ownerToken == null ||
+                toolStolen ||
+                !isActiveAndEnabled)
+            {
+                return false;
+            }
+
+            toolStolen = true;
+            stolenTool = activeTool;
+            theftOwner = ownerToken;
+            lastTheftReason =
+                $"Stolen by {ownerToken.name}";
+
+            ApplySelection(false);
+            ToolTheftChanged?.Invoke(stolenTool, true);
+            return true;
+        }
+
+        public bool TryTransferStolenTool(
+            UnityEngine.Object currentOwner,
+            UnityEngine.Object newOwner)
+        {
+            if (!toolStolen ||
+                currentOwner == null ||
+                newOwner == null ||
+                theftOwner != currentOwner)
+            {
+                return false;
+            }
+
+            theftOwner = newOwner;
+            lastTheftReason =
+                $"Transferred to {newOwner.name}";
+            return true;
+        }
+
+        public bool TryReturnStolenTool(
+            UnityEngine.Object ownerToken,
+            string reason)
+        {
+            if (!toolStolen ||
+                ownerToken == null ||
+                theftOwner != ownerToken)
+            {
+                return false;
+            }
+
+            ReturnStolenToolInternal(reason);
+            return true;
+        }
+
+        public void ForceReturnStolenTool(string reason)
+        {
+            if (!toolStolen)
+            {
+                return;
+            }
+
+            ReturnStolenToolInternal(reason);
+        }
+
+        private void ReturnStolenToolInternal(string reason)
+        {
+            FigureToolId returnedTool = stolenTool;
+            toolStolen = false;
+            theftOwner = null;
+            lastTheftReason = string.IsNullOrWhiteSpace(reason)
+                ? "Tool returned"
+                : reason;
+
+            if (isActiveAndEnabled)
+            {
+                ApplySelection(false);
+            }
+
+            ToolTheftChanged?.Invoke(returnedTool, false);
         }
 
         private void ApplySelection(bool force)
         {
+            bool toolAvailable = !toolStolen;
             bool usePaletteKnife =
+                toolAvailable &&
                 activeTool == FigureToolId.PaletteKnife;
             bool useFixativeSpray =
+                toolAvailable &&
                 activeTool == FigureToolId.FixativeSpray;
             bool useFrameGun =
+                toolAvailable &&
                 activeTool == FigureToolId.FrameGun;
             bool useSponge =
+                toolAvailable &&
                 activeTool == FigureToolId.Sponge;
 
             SetControllerEnabled(paletteKnifeController, false);
@@ -206,13 +334,18 @@ namespace PaintedAlive.Figures.Tools
 
         private bool SelectionStateMatches()
         {
+            bool toolAvailable = !toolStolen;
             bool usePaletteKnife =
+                toolAvailable &&
                 activeTool == FigureToolId.PaletteKnife;
             bool useFixativeSpray =
+                toolAvailable &&
                 activeTool == FigureToolId.FixativeSpray;
             bool useFrameGun =
+                toolAvailable &&
                 activeTool == FigureToolId.FrameGun;
             bool useSponge =
+                toolAvailable &&
                 activeTool == FigureToolId.Sponge;
 
             return ControllerMatches(
@@ -361,7 +494,7 @@ namespace PaintedAlive.Figures.Tools
             actionReference?.action?.Disable();
         }
 
-        private static string GetDisplayName(FigureToolId tool)
+        public static string GetDisplayName(FigureToolId tool)
         {
             return tool switch
             {

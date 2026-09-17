@@ -1,4 +1,5 @@
 using PaintedAlive.Paint;
+using PaintedAlive.Networking.M56;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -108,6 +109,12 @@ namespace PaintedAlive.Painters
 
         private void Update()
         {
+            if (PaintedAliveNetworkRoleBridge.GameplayInputSuppressed)
+            {
+                CancelCharge();
+                return;
+            }
+
             if (moundSystem == null ||
                 moundSystem.Config == null ||
                 pigmentReservoir == null)
