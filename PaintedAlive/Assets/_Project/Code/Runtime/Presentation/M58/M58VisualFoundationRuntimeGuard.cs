@@ -1,14 +1,23 @@
-using System;
-using System.Reflection;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 namespace PaintedAlive.Presentation.M58
 {
     /// <summary>
-    /// Keeps the M58 visual foundation effective when gameplay switches/enables
-    /// role cameras at runtime. Uses reflection for URP camera data so this
-    /// runtime assembly does not require a new package/asmdef reference.
+    /// Runtime authority for the M58 visual foundation.
+    ///
+    /// Guarantees that:
+    /// - the serialized M58 global Volume stays active,
+    /// - its authoritative shared profile is restored if another runtime system replaces it,
+    /// - every runtime camera has HDR + URP post-processing enabled,
+    /// - every runtime camera's Volume Layer Mask includes the M58 Volume layer,
+    /// - newly-created / role-switched cameras are repaired before they render.
+    ///
+    /// Presentation-only: it never enables/disables gameplay cameras and never
+    /// changes camera transforms, FOV, culling masks, renderer data, networking,
+    /// collision, or gameplay authority.
     /// </summary>
     [DefaultExecutionOrder(-32000)]
     [DisallowMultipleComponent]
@@ -23,43 +32,39 @@ namespace PaintedAlive.Presentation.M58
         private const string FoundationVolumeName =
             "M58_GlobalVolume_PaintedAlive";
 
-        private const float RefreshInterval = 0.40f;
+        private const float SafetyRefreshInterval = 0.50f;
 
         private static M58VisualFoundationRuntimeGuard instance;
-        private static Type universalCameraDataType;
-        private static PropertyInfo renderPostProcessingProperty;
 
-        private float nextRefresh;
+        private float nextSafetyRefresh;
         private bool warnedMissingFoundation;
 
+        private Volume cachedFoundationVolume;
+        private VolumeProfile authoritativeProfile;
+        private int authoritativeVolumeLayer = -1;
+
         [RuntimeInitializeOnLoadMethod(
-            RuntimeInitializeLoadType.AfterSceneLoad)]
+            RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            instance = null;
+        }
+
+        [RuntimeInitializeOnLoadMethod(
+            RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Bootstrap()
         {
             if (instance != null)
                 return;
 
             GameObject guardObject =
-                GameObject.Find(GuardName);
+                new GameObject(GuardName);
 
-            if (guardObject == null)
-            {
-                guardObject =
-                    new GameObject(GuardName);
-
-                DontDestroyOnLoad(guardObject);
-            }
+            DontDestroyOnLoad(guardObject);
 
             instance =
-                guardObject.GetComponent<
+                guardObject.AddComponent<
                     M58VisualFoundationRuntimeGuard>();
-
-            if (instance == null)
-            {
-                instance =
-                    guardObject.AddComponent<
-                        M58VisualFoundationRuntimeGuard>();
-            }
         }
 
         private void Awake()
@@ -74,11 +79,13 @@ namespace PaintedAlive.Presentation.M58
             instance = this;
             DontDestroyOnLoad(gameObject);
 
-            ResolveUrpTypes();
-
             SceneManager.sceneLoaded +=
                 HandleSceneLoaded;
 
+            RenderPipelineManager.beginCameraRendering +=
+                HandleBeginCameraRendering;
+
+            RefreshFoundationReference();
             ApplyNow(true);
         }
 
@@ -89,19 +96,22 @@ namespace PaintedAlive.Presentation.M58
 
             SceneManager.sceneLoaded -=
                 HandleSceneLoaded;
+
+            RenderPipelineManager.beginCameraRendering -=
+                HandleBeginCameraRendering;
         }
 
         private void Update()
         {
             if (Time.unscaledTime <
-                nextRefresh)
+                nextSafetyRefresh)
             {
                 return;
             }
 
-            nextRefresh =
+            nextSafetyRefresh =
                 Time.unscaledTime +
-                RefreshInterval;
+                SafetyRefreshInterval;
 
             ApplyNow(false);
         }
@@ -110,8 +120,33 @@ namespace PaintedAlive.Presentation.M58
             Scene scene,
             LoadSceneMode mode)
         {
-            nextRefresh = 0f;
+            cachedFoundationVolume = null;
+            authoritativeProfile = null;
+            authoritativeVolumeLayer = -1;
+            warnedMissingFoundation = false;
+            nextSafetyRefresh = 0f;
+
+            // sceneLoaded is early enough to establish the authoritative M58
+            // profile before normal gameplay Start() methods run.
+            RefreshFoundationReference();
             ApplyNow(true);
+        }
+
+        private void HandleBeginCameraRendering(
+            ScriptableRenderContext context,
+            Camera camera)
+        {
+            if (camera == null ||
+                camera.gameObject == null ||
+                !camera.gameObject.scene.IsValid())
+            {
+                return;
+            }
+
+            // This is the critical Play Mode guarantee: even cameras created,
+            // enabled or swapped by role/network systems are repaired before
+            // their first rendered frame.
+            EnsureCamera(camera);
         }
 
         private void ApplyNow(bool verbose)
@@ -129,9 +164,9 @@ namespace PaintedAlive.Presentation.M58
                     warnedMissingFoundation = true;
 
                     Debug.LogWarning(
-                        "[M58.0ABC.1] Visual Foundation root/volume " +
+                        "[M58.0ABC.2] Visual Foundation root/volume " +
                         "was not found in the loaded gameplay scene. " +
-                        "Run the M58.0ABC repair setup in the editor.");
+                        "Run 58.0ABC - REPAIR Visual Stack in Edit Mode.");
                 }
 
                 return;
@@ -143,12 +178,80 @@ namespace PaintedAlive.Presentation.M58
                 repairedCameras > 0)
             {
                 Debug.Log(
-                    "[M58.0ABC.1] Runtime Visual Foundation active | " +
-                    $"CamerasRepaired={repairedCameras}");
+                    "[M58.0ABC.2] Runtime Visual Foundation LOCKED | " +
+                    $"CamerasRepaired={repairedCameras} | " +
+                    $"VolumeLayer={authoritativeVolumeLayer} | " +
+                    $"Profile={(authoritativeProfile != null ? authoritativeProfile.name : "<null>")}");
             }
         }
 
-        private static bool EnsureFoundationActive()
+        private bool EnsureFoundationActive()
+        {
+            if (cachedFoundationVolume == null)
+                RefreshFoundationReference();
+
+            if (cachedFoundationVolume == null)
+                return false;
+
+            GameObject volumeObject =
+                cachedFoundationVolume.gameObject;
+
+            Transform rootTransform =
+                volumeObject.transform.parent;
+
+            if (rootTransform != null &&
+                rootTransform.name == FoundationRootName &&
+                !rootTransform.gameObject.activeSelf)
+            {
+                rootTransform.gameObject.SetActive(true);
+            }
+
+            if (!volumeObject.activeSelf)
+                volumeObject.SetActive(true);
+
+            if (!cachedFoundationVolume.enabled)
+                cachedFoundationVolume.enabled = true;
+
+            if (!cachedFoundationVolume.isGlobal)
+                cachedFoundationVolume.isGlobal = true;
+
+            if (!Mathf.Approximately(
+                    cachedFoundationVolume.weight,
+                    1f))
+            {
+                cachedFoundationVolume.weight = 1f;
+            }
+
+            if (!Mathf.Approximately(
+                    cachedFoundationVolume.priority,
+                    10f))
+            {
+                cachedFoundationVolume.priority = 10f;
+            }
+
+            if (authoritativeProfile == null &&
+                cachedFoundationVolume.sharedProfile != null)
+            {
+                authoritativeProfile =
+                    cachedFoundationVolume.sharedProfile;
+            }
+
+            if (authoritativeProfile != null &&
+                cachedFoundationVolume.sharedProfile !=
+                    authoritativeProfile)
+            {
+                cachedFoundationVolume.sharedProfile =
+                    authoritativeProfile;
+            }
+
+            authoritativeVolumeLayer =
+                volumeObject.layer;
+
+            return
+                cachedFoundationVolume.sharedProfile != null;
+        }
+
+        private void RefreshFoundationReference()
         {
             GameObject root =
                 FindSceneObjectIncludingInactive(
@@ -161,7 +264,8 @@ namespace PaintedAlive.Presentation.M58
             if (root == null ||
                 volumeObject == null)
             {
-                return false;
+                cachedFoundationVolume = null;
+                return;
             }
 
             if (!root.activeSelf)
@@ -170,56 +274,28 @@ namespace PaintedAlive.Presentation.M58
             if (!volumeObject.activeSelf)
                 volumeObject.SetActive(true);
 
-            Component[] components =
-                volumeObject.GetComponents<Component>();
+            Volume volume =
+                volumeObject.GetComponent<Volume>();
 
-            for (int i = 0;
-                 i < components.Length;
-                 i++)
+            if (volume == null)
             {
-                Component component =
-                    components[i];
-
-                if (component == null ||
-                    !string.Equals(
-                        component.GetType().Name,
-                        "Volume",
-                        StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                if (component is Behaviour behaviour &&
-                    !behaviour.enabled)
-                {
-                    behaviour.enabled = true;
-                }
-
-                SetPropertyIfPresent(
-                    component,
-                    "isGlobal",
-                    true);
-
-                SetPropertyIfPresent(
-                    component,
-                    "weight",
-                    1f);
-
-                SetPropertyIfPresent(
-                    component,
-                    "priority",
-                    10f);
-
-                return true;
+                cachedFoundationVolume = null;
+                return;
             }
 
-            return false;
+            cachedFoundationVolume = volume;
+            authoritativeVolumeLayer =
+                volumeObject.layer;
+
+            if (volume.sharedProfile != null)
+            {
+                authoritativeProfile =
+                    volume.sharedProfile;
+            }
         }
 
-        private static int EnsureAllRuntimeCameras()
+        private int EnsureAllRuntimeCameras()
         {
-            ResolveUrpTypes();
-
             int changed = 0;
 
             Camera[] cameras =
@@ -239,101 +315,73 @@ namespace PaintedAlive.Presentation.M58
                     continue;
                 }
 
-                bool cameraChanged = false;
-
-                if (!camera.allowHDR)
-                {
-                    camera.allowHDR = true;
-                    cameraChanged = true;
-                }
-
-                if (universalCameraDataType != null)
-                {
-                    Component cameraData =
-                        camera.GetComponent(
-                            universalCameraDataType);
-
-                    if (cameraData == null)
-                    {
-                        try
-                        {
-                            cameraData =
-                                camera.gameObject.AddComponent(
-                                    universalCameraDataType);
-
-                            cameraChanged = true;
-                        }
-                        catch
-                        {
-                            // A camera that cannot accept URP additional
-                            // data is simply ignored. No gameplay object is
-                            // otherwise modified.
-                        }
-                    }
-
-                    if (cameraData != null &&
-                        renderPostProcessingProperty != null)
-                    {
-                        object current =
-                            renderPostProcessingProperty
-                                .GetValue(
-                                    cameraData,
-                                    null);
-
-                        if (current is bool enabled &&
-                            !enabled)
-                        {
-                            renderPostProcessingProperty
-                                .SetValue(
-                                    cameraData,
-                                    true,
-                                    null);
-
-                            cameraChanged = true;
-                        }
-                    }
-                }
-
-                if (cameraChanged)
+                if (EnsureCamera(camera))
                     changed++;
             }
 
             return changed;
         }
 
-        private static void ResolveUrpTypes()
+        private bool EnsureCamera(Camera camera)
         {
-            if (universalCameraDataType != null)
-                return;
+            bool changed = false;
 
-            Assembly[] assemblies =
-                AppDomain.CurrentDomain.GetAssemblies();
-
-            for (int i = 0;
-                 i < assemblies.Length;
-                 i++)
+            if (!camera.allowHDR)
             {
-                Type candidate =
-                    assemblies[i].GetType(
-                        "UnityEngine.Rendering.Universal." +
-                        "UniversalAdditionalCameraData",
-                        false);
-
-                if (candidate == null)
-                    continue;
-
-                universalCameraDataType =
-                    candidate;
-
-                renderPostProcessingProperty =
-                    candidate.GetProperty(
-                        "renderPostProcessing",
-                        BindingFlags.Instance |
-                        BindingFlags.Public |
-                        BindingFlags.NonPublic);
-
-                break;
+                camera.allowHDR = true;
+                changed = true;
             }
+
+            UniversalAdditionalCameraData data =
+                camera.GetComponent<
+                    UniversalAdditionalCameraData>();
+
+            if (data == null)
+            {
+                data =
+                    camera.gameObject.AddComponent<
+                        UniversalAdditionalCameraData>();
+
+                changed = true;
+            }
+
+            if (!data.renderPostProcessing)
+            {
+                data.renderPostProcessing = true;
+                changed = true;
+            }
+
+            int volumeLayer =
+                authoritativeVolumeLayer;
+
+            if (volumeLayer < 0 &&
+                cachedFoundationVolume != null)
+            {
+                volumeLayer =
+                    cachedFoundationVolume.gameObject.layer;
+            }
+
+            if (volumeLayer >= 0 &&
+                volumeLayer < 32)
+            {
+                int requiredBit =
+                    1 << volumeLayer;
+
+                int currentMask =
+                    data.volumeLayerMask.value;
+
+                if ((currentMask &
+                     requiredBit) == 0)
+                {
+                    data.volumeLayerMask =
+                        currentMask |
+                        requiredBit;
+
+                    changed = true;
+                }
+            }
+
+            return changed;
         }
 
         private static GameObject
@@ -362,37 +410,6 @@ namespace PaintedAlive.Presentation.M58
             }
 
             return null;
-        }
-
-        private static void SetPropertyIfPresent(
-            object target,
-            string propertyName,
-            object value)
-        {
-            PropertyInfo property =
-                target.GetType().GetProperty(
-                    propertyName,
-                    BindingFlags.Instance |
-                    BindingFlags.Public |
-                    BindingFlags.NonPublic);
-
-            if (property == null ||
-                !property.CanWrite)
-            {
-                return;
-            }
-
-            try
-            {
-                property.SetValue(
-                    target,
-                    value,
-                    null);
-            }
-            catch
-            {
-                // Keep the guard presentation-only and non-fatal.
-            }
         }
     }
 }

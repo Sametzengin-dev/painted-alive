@@ -8,7 +8,9 @@
         "GUID:2bafac87e7f4b9b418d9448d219b01ab",
         "FishNet.Runtime",
         "com.rlabrecque.steamworks.net",
-        "FishySteamworks.Runtime"
+        "FishySteamworks.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
