@@ -27,6 +27,16 @@ namespace PaintedAlive.Paint
         private static readonly int SmoothnessId =
             Shader.PropertyToID("_Smoothness");
 
+        private static readonly int DrynessId =
+            Shader.PropertyToID("_Dryness");
+
+        private static readonly int CreationPulseId =
+            Shader.PropertyToID("_CreationPulse");
+
+        private const float CreationShineDuration = 0.55f;
+        private const float CreationSmoothnessBoost = 0.22f;
+        private const float CreationBrightness = 0.08f;
+
         private readonly List<Vector3> controlPoints = new();
         private readonly List<Vector2> cutIntervals = new();
 
@@ -44,6 +54,7 @@ namespace PaintedAlive.Paint
 
         private bool finalized;
         private float lifecycleElapsed;
+        private float creationVisualElapsed = CreationShineDuration;
 
 
         private OilStrokePressureProfile pressureProfile =
@@ -72,6 +83,14 @@ namespace PaintedAlive.Paint
         public float OriginalLength =>
             splineContainer != null && HasRenderableGeometry
                 ? splineContainer.CalculateLength()
+                : 0f;
+
+        public int ControlPointCount => controlPoints.Count;
+
+        public float VisualWidth =>
+            config != null
+                ? config.GetWidth(Shape) *
+                  pressureProfile.WidthMultiplier
                 : 0f;
 
         public int CutCount { get; private set; }
@@ -150,6 +169,13 @@ namespace PaintedAlive.Paint
             }
 
             lifecycleElapsed += Time.deltaTime;
+
+            if (creationVisualElapsed < CreationShineDuration)
+            {
+                creationVisualElapsed = Mathf.Min(
+                    CreationShineDuration,
+                    creationVisualElapsed + Time.deltaTime);
+            }
 
             RefreshLifecycleState();
         }
@@ -323,6 +349,7 @@ namespace PaintedAlive.Paint
 
             finalized = true;
             lifecycleElapsed = 0f;
+            creationVisualElapsed = 0f;
             State = OilStrokeState.Wet;
 
             RebuildMesh();
@@ -406,6 +433,22 @@ namespace PaintedAlive.Paint
                     DryCutCount++;
                     break;
             }
+
+            return true;
+        }
+
+        public bool TryGetWorldControlPoint(
+            int index,
+            out Vector3 worldPoint)
+        {
+            if (index < 0 || index >= controlPoints.Count)
+            {
+                worldPoint = default;
+                return false;
+            }
+
+            worldPoint = transform.TransformPoint(
+                controlPoints[index]);
 
             return true;
         }
@@ -776,59 +819,107 @@ namespace PaintedAlive.Paint
                 return;
             }
 
-            if (State == OilStrokeState.Dry)
+            Material activeMaterial =
+                State == OilStrokeState.Dry
+                    ? fallbackDry
+                    : fallbackWet;
+
+            meshRenderer.sharedMaterial = activeMaterial;
+
+            float creationStrength =
+                finalized && CreationShineDuration > 0f
+                    ? 1f - Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.Clamp01(
+                            creationVisualElapsed /
+                            CreationShineDuration))
+                    : 0f;
+
+            bool supportsFinalImpasto =
+                activeMaterial.HasProperty(DrynessId) ||
+                activeMaterial.HasProperty(CreationPulseId);
+
+            bool needsPropertyBlock =
+                State == OilStrokeState.Drying ||
+                creationStrength > 0.001f ||
+                supportsFinalImpasto;
+
+            if (!needsPropertyBlock)
             {
                 meshRenderer.SetPropertyBlock(null);
-
-                meshRenderer.sharedMaterial =
-                    fallbackDry;
-
                 return;
             }
 
-            meshRenderer.sharedMaterial =
-                fallbackWet;
-
-            if (State == OilStrokeState.Wet)
-            {
-                meshRenderer.SetPropertyBlock(null);
-                return;
-            }
-
-            Color wetColor =
-                GetMaterialColor(
-                    fallbackWet);
-
-            Color dryColor =
-                GetMaterialColor(
-                    fallbackDry);
-
+            Color wetColor = GetMaterialColor(fallbackWet);
+            Color dryColor = GetMaterialColor(fallbackDry);
             float wetSmoothness =
-                GetMaterialSmoothness(
-                    fallbackWet);
-
+                GetMaterialSmoothness(fallbackWet);
             float drySmoothness =
-                GetMaterialSmoothness(
-                    fallbackDry);
+                GetMaterialSmoothness(fallbackDry);
+
+            Color lifecycleColor = State switch
+            {
+                OilStrokeState.Drying =>
+                    Color.Lerp(wetColor, dryColor, dryingProgress),
+                OilStrokeState.Dry => dryColor,
+                _ => wetColor
+            };
+
+            float lifecycleSmoothness = State switch
+            {
+                OilStrokeState.Drying =>
+                    Mathf.Lerp(
+                        wetSmoothness,
+                        drySmoothness,
+                        dryingProgress),
+                OilStrokeState.Dry => drySmoothness,
+                _ => wetSmoothness
+            };
+
+            Color creationTint = Color.Lerp(
+                lifecycleColor,
+                Color.white,
+                CreationBrightness);
 
             materialPropertyBlock.Clear();
-
             materialPropertyBlock.SetColor(
                 BaseColorId,
                 Color.Lerp(
-                    wetColor,
-                    dryColor,
-                    dryingProgress));
+                    lifecycleColor,
+                    creationTint,
+                    creationStrength));
 
             materialPropertyBlock.SetFloat(
                 SmoothnessId,
-                Mathf.Lerp(
-                    wetSmoothness,
-                    drySmoothness,
-                    dryingProgress));
+                Mathf.Clamp01(
+                    lifecycleSmoothness +
+                    CreationSmoothnessBoost *
+                    creationStrength));
 
-            meshRenderer.SetPropertyBlock(
-                materialPropertyBlock);
+            if (activeMaterial.HasProperty(DrynessId))
+            {
+                float dryness = State switch
+                {
+                    OilStrokeState.Wet => 0f,
+                    OilStrokeState.Drying => dryingProgress,
+                    OilStrokeState.Dry => 1f,
+                    _ => 0f
+                };
+
+                materialPropertyBlock.SetFloat(
+                    DrynessId,
+                    dryness);
+            }
+
+            if (activeMaterial.HasProperty(CreationPulseId))
+            {
+                materialPropertyBlock.SetFloat(
+                    CreationPulseId,
+                    creationStrength);
+            }
+
+            meshRenderer.SetPropertyBlock(materialPropertyBlock);
         }
 
         private static Color GetMaterialColor(

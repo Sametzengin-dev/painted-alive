@@ -14,6 +14,9 @@ namespace PaintedAlive.Paint
         [SerializeField]
         private ParticleSystem fractureParticlePrefab;
 
+        [SerializeField]
+        private ParticleSystem strokeCreationParticlePrefab;
+
         [SerializeField, Range(1, 32)]
         private int maximumParticlesPerPool = 10;
 
@@ -45,11 +48,43 @@ namespace PaintedAlive.Paint
         private readonly List<ParticleSystem> fractureParticlePool =
             new();
 
+        private readonly List<ParticleSystem> strokeCreationParticlePool =
+            new();
+
         private readonly List<AudioSource> audioPool = new();
 
         private int knifeParticleCursor;
         private int fractureParticleCursor;
+        private int strokeCreationParticleCursor;
         private int audioCursor;
+
+        public bool HasStrokeCreationParticle =>
+            strokeCreationParticlePrefab != null ||
+            knifeCutParticlePrefab != null;
+
+        public void PlayStrokeCreation(
+            Vector3 position,
+            Vector3 strokeDirection,
+            float strokeWidth)
+        {
+            ParticleSystem prefab =
+                strokeCreationParticlePrefab != null
+                    ? strokeCreationParticlePrefab
+                    : knifeCutParticlePrefab;
+
+            float scale = Mathf.Clamp(
+                strokeWidth * 0.55f,
+                0.42f,
+                1.2f);
+
+            PlayParticle(
+                prefab,
+                strokeCreationParticlePool,
+                ref strokeCreationParticleCursor,
+                position,
+                strokeDirection,
+                scale);
+        }
 
         public void PlayKnifeCut(
             Vector3 position,
@@ -66,6 +101,22 @@ namespace PaintedAlive.Paint
                 position,
                 surfaceNormal,
                 Mathf.Lerp(0.7f, 1.25f, safeIntensity));
+
+            if (strokeCreationParticlePrefab != null)
+            {
+                Vector3 safeNormal =
+                    surfaceNormal.sqrMagnitude > 0.0001f
+                        ? surfaceNormal.normalized
+                        : Vector3.up;
+
+                PlayParticle(
+                    strokeCreationParticlePrefab,
+                    strokeCreationParticlePool,
+                    ref strokeCreationParticleCursor,
+                    position + safeNormal * 0.015f,
+                    safeNormal,
+                    Mathf.Lerp(0.38f, 0.62f, safeIntensity));
+            }
 
             PlayRandomClip(
                 knifeCutClips,

@@ -16,6 +16,9 @@ namespace PaintedAlive.Paint
         private static readonly int SmoothnessId =
             Shader.PropertyToID("_Smoothness");
 
+        private static readonly int DrynessId =
+            Shader.PropertyToID("_Dryness");
+
         private PainterPaintMoundConfig config;
         private MeshFilter meshFilter;
         private MeshRenderer meshRenderer;
@@ -200,8 +203,19 @@ namespace PaintedAlive.Paint
 
             if (State == OilStrokeState.Dry)
             {
-                meshRenderer.SetPropertyBlock(null);
                 meshRenderer.sharedMaterial = fallbackDry;
+
+                if (fallbackDry.HasProperty(DrynessId))
+                {
+                    propertyBlock.Clear();
+                    propertyBlock.SetFloat(DrynessId, 1f);
+                    meshRenderer.SetPropertyBlock(propertyBlock);
+                }
+                else
+                {
+                    meshRenderer.SetPropertyBlock(null);
+                }
+
                 return;
             }
 
@@ -209,7 +223,17 @@ namespace PaintedAlive.Paint
 
             if (State == OilStrokeState.Wet)
             {
-                meshRenderer.SetPropertyBlock(null);
+                if (fallbackWet.HasProperty(DrynessId))
+                {
+                    propertyBlock.Clear();
+                    propertyBlock.SetFloat(DrynessId, 0f);
+                    meshRenderer.SetPropertyBlock(propertyBlock);
+                }
+                else
+                {
+                    meshRenderer.SetPropertyBlock(null);
+                }
+
                 return;
             }
 
@@ -228,6 +252,13 @@ namespace PaintedAlive.Paint
                     GetMaterialSmoothness(fallbackWet),
                     GetMaterialSmoothness(fallbackDry),
                     dryingProgress));
+
+            if (fallbackWet.HasProperty(DrynessId))
+            {
+                propertyBlock.SetFloat(
+                    DrynessId,
+                    Mathf.Clamp01(dryingProgress));
+            }
 
             meshRenderer.SetPropertyBlock(propertyBlock);
         }

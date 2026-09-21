@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,6 +29,13 @@ namespace PaintedAlive.Paint
 
         private OilStrokeRuntime activeStroke;
         private int nextStrokeId = 1;
+
+        /// <summary>
+        /// Raised only after a stroke has produced renderable geometry and
+        /// entered its real wet lifecycle. Presentation systems may observe
+        /// this event, but must not mutate gameplay state from it.
+        /// </summary>
+        public event Action<OilStrokeRuntime> StrokeFinalized;
 
         public bool IsDrawing =>
             activeStroke != null;
@@ -198,6 +206,7 @@ namespace PaintedAlive.Paint
             }
 
             completedStroke.FinalizeStroke();
+            StrokeFinalized?.Invoke(completedStroke);
         }
 
         public void ClearAllStrokes()

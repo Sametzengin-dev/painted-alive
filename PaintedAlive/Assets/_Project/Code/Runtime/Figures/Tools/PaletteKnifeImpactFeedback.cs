@@ -8,12 +8,22 @@ namespace PaintedAlive.Figures.Tools
     [DisallowMultipleComponent]
     public sealed class PaletteKnifeImpactFeedback : MonoBehaviour
     {
+        private static readonly int BaseColorId =
+            Shader.PropertyToID("_BaseColor");
+
+        private static readonly int SmoothnessId =
+            Shader.PropertyToID("_Smoothness");
+
         [Header("Dependencies")]
         [SerializeField]
         private OilPaintFeedbackService feedbackService;
 
         [SerializeField]
         private Transform toolVisual;
+
+        [SerializeField]
+        private Renderer[] toolRenderers =
+            System.Array.Empty<Renderer>();
 
         [Header("Tool Kick")]
         [SerializeField, Min(0.01f)]
@@ -39,6 +49,25 @@ namespace PaintedAlive.Figures.Tools
         private Vector3 restingLocalPosition;
         private Quaternion restingLocalRotation;
         private Coroutine impactRoutine;
+        private MaterialPropertyBlock propertyBlock;
+        private Color[] restingColors = System.Array.Empty<Color>();
+        private float[] restingSmoothness =
+            System.Array.Empty<float>();
+
+        public Transform ToolVisual => toolVisual;
+        public int ToolRendererCount =>
+            toolRenderers != null ? toolRenderers.Length : 0;
+
+        public void ConfigureToolVisual(Transform targetVisual)
+        {
+            RestorePose();
+            toolVisual = targetVisual;
+            toolRenderers = toolVisual != null
+                ? toolVisual.GetComponentsInChildren<Renderer>(true)
+                : System.Array.Empty<Renderer>();
+            CacheRestingPose();
+            CacheMaterialState();
+        }
 
         private void Awake()
         {
@@ -50,6 +79,7 @@ namespace PaintedAlive.Figures.Tools
             }
 
             CacheRestingPose();
+            CacheMaterialState();
         }
 
         public void PlayCutResult(
@@ -172,6 +202,9 @@ namespace PaintedAlive.Figures.Tools
                             (intensity * pulse));
                 }
 
+                ApplyMaterialPulse(
+                    Mathf.Clamp01(pulse * intensity));
+
                 yield return null;
             }
 
@@ -199,6 +232,91 @@ namespace PaintedAlive.Figures.Tools
                 toolVisual.localRotation;
         }
 
+        private void CacheMaterialState()
+        {
+            propertyBlock ??= new MaterialPropertyBlock();
+
+            if ((toolRenderers == null ||
+                 toolRenderers.Length == 0) &&
+                toolVisual != null)
+            {
+                toolRenderers =
+                    toolVisual.GetComponentsInChildren<Renderer>(true);
+            }
+
+            int count = toolRenderers != null
+                ? toolRenderers.Length
+                : 0;
+            restingColors = new Color[count];
+            restingSmoothness = new float[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                Material material = toolRenderers[i] != null
+                    ? toolRenderers[i].sharedMaterial
+                    : null;
+
+                restingColors[i] =
+                    material != null &&
+                    material.HasProperty(BaseColorId)
+                        ? material.GetColor(BaseColorId)
+                        : Color.white;
+
+                restingSmoothness[i] =
+                    material != null &&
+                    material.HasProperty(SmoothnessId)
+                        ? material.GetFloat(SmoothnessId)
+                        : 0.55f;
+            }
+        }
+
+        private void ApplyMaterialPulse(float pulse)
+        {
+            if (toolRenderers == null ||
+                restingColors == null ||
+                restingSmoothness == null)
+            {
+                return;
+            }
+
+            propertyBlock ??= new MaterialPropertyBlock();
+
+            int count = Mathf.Min(
+                toolRenderers.Length,
+                Mathf.Min(
+                    restingColors.Length,
+                    restingSmoothness.Length));
+
+            for (int i = 0; i < count; i++)
+            {
+                Renderer target = toolRenderers[i];
+
+                if (target == null)
+                {
+                    continue;
+                }
+
+                propertyBlock.Clear();
+                target.GetPropertyBlock(propertyBlock);
+
+                propertyBlock.SetColor(
+                    BaseColorId,
+                    Color.Lerp(
+                        restingColors[i],
+                        new Color(1f, 0.82f, 0.46f, 1f),
+                        pulse * 0.38f));
+
+                propertyBlock.SetFloat(
+                    SmoothnessId,
+                    Mathf.Lerp(
+                        restingSmoothness[i],
+                        1f,
+                        pulse));
+
+                target.SetPropertyBlock(propertyBlock);
+            }
+        }
+
         private void RestorePose()
         {
             if (toolVisual == null)
@@ -211,6 +329,8 @@ namespace PaintedAlive.Figures.Tools
 
             toolVisual.localRotation =
                 restingLocalRotation;
+
+            ApplyMaterialPulse(0f);
         }
 
         private void OnDisable()

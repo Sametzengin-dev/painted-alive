@@ -865,7 +865,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 828b275732cc6b14b91642902c27ffe4, type: 2}
+  - {fileID: 2100000, guid: 419ebd4270bd09b4a83bbca1bcc0727c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -38661,7 +38661,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 828b275732cc6b14b91642902c27ffe4, type: 2}
+  - {fileID: 2100000, guid: 419ebd4270bd09b4a83bbca1bcc0727c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -66239,6 +66239,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Environment.PrismaticReach.PrismaticReachVisualSemantic
   kind: 0
+--- !u!1 &619735710
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 619735711}
+  m_Layer: 0
+  m_Name: M58_FigureMaterialMotionAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &619735711
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 619735710}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.05, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 907953213}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &621764999
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -68772,6 +68803,7 @@ GameObject:
   - component: {fileID: 673663561}
   - component: {fileID: 673663560}
   - component: {fileID: 673663563}
+  - component: {fileID: 673663564}
   m_Layer: 0
   m_Name: PaintRuntime
   m_TagString: Untagged
@@ -69029,6 +69061,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.OilPaintFeedbackService
   knifeCutParticlePrefab: {fileID: 1708222768494768650, guid: dadc982b9e8f30746bacdb5079cbf270, type: 3}
   fractureParticlePrefab: {fileID: 7857877501508006170, guid: 374aa70608f5ef84481b725bc70ea019, type: 3}
+  strokeCreationParticlePrefab: {fileID: 1708222768494768650, guid: 0086af144db83f642836c46c5c49a986, type: 3}
   maximumParticlesPerPool: 10
   knifeCutClips: []
   fractureClips: []
@@ -69055,6 +69088,22 @@ MonoBehaviour:
   relayedPointCount: 0
   draftStartedAt: 0
   normalRevealAt: 0
+--- !u!114 &673663564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 673663549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5c4af88e185bda55e745c8429e08683, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Paint.OilStrokeCreationFeedback
+  strokeSystem: {fileID: 673663552}
+  feedbackService: {fileID: 673663562}
+  maximumTraceEmissions: 10
+  traceDuration: 0.3
 --- !u!65 &673915232
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -75477,7 +75526,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 828b275732cc6b14b91642902c27ffe4, type: 2}
+  - {fileID: 2100000, guid: 419ebd4270bd09b4a83bbca1bcc0727c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -80778,7 +80827,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c6da436d0ba85a74d9587c003e29e2cc, type: 2}
+  - {fileID: 2100000, guid: e26e5a2e1c52b0747ad71a8f2e8def37, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -80964,6 +81013,8 @@ GameObject:
   - component: {fileID: 907953280}
   - component: {fileID: 907953281}
   - component: {fileID: 907953282}
+  - component: {fileID: 907953284}
+  - component: {fileID: 907953283}
   m_Layer: 7
   m_Name: Figure_Player
   m_TagString: Player
@@ -80998,6 +81049,7 @@ Transform:
   - {fileID: 321503680}
   - {fileID: 611177388}
   - {fileID: 1220512262}
+  - {fileID: 619735711}
   m_Father: {fileID: 1890819657}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &907953214
@@ -81336,7 +81388,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.PaletteKnifeImpactFeedback
   feedbackService: {fileID: 673663562}
-  toolVisual: {fileID: 0}
+  toolVisual: {fileID: 1632041140}
+  toolRenderers:
+  - {fileID: 1854401083}
   kickDuration: 0.14
   kickDistance: 0.08
   kickRotation: {x: -7, y: 2, z: -3}
@@ -81605,6 +81659,7 @@ MonoBehaviour:
   audioSource: {fileID: 0}
   burstClips: []
   volume: 0.9
+  maximumParticleInstances: 4
 --- !u!114 &907953239
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -82564,6 +82619,47 @@ MonoBehaviour:
   airborneSeconds: 0
   lastRecoveryReason: Not triggered
   mostRecentSafePosition: {x: 0, y: 0, z: 0}
+--- !u!114 &907953283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b640513dd6e74c06944b5ff254d62b2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.Tools.SpongeSurfaceFeedback
+  reservoir: {fileID: 907953235}
+  spongeRenderer: {fileID: 1970619910}
+  drySpongeColor: {r: 0.72, g: 0.46, b: 0.12, a: 1}
+--- !u!114 &907953284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 907953212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e78994c58a0480485a1f023c93ec0c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PaintedAlive.Runtime::PaintedAlive.Figures.FigureClarityMaterialMotionFeedback
+  clarityState: {fileID: 907953219}
+  productionRenderers:
+  - {fileID: 1226219098}
+  stainRenderer: {fileID: 279830690}
+  transitionAnchor: {fileID: 619735711}
+  transitionParticlePrefab: {fileID: 1708222768494768650, guid: dadc982b9e8f30746bacdb5079cbf270, type: 3}
+  stainedTint: {r: 0.72, g: 0.3, b: 0.34, a: 1}
+  distortedTint: {r: 0.48, g: 0.08, b: 0.14, a: 1}
+  dissolvingTint: {r: 0.24, g: 0.025, b: 0.055, a: 1}
+  responseSeconds: 0.2
+  distortedPulse: 0.035
+  dissolvingPulse: 0.075
+  stainSpreadAmplitude: 0.065
+  stainPulseSpeed: 2.8
 --- !u!23 &909289977 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: 4268074206352292949, guid: 99d9f51fcceaeed4a91e181ae7b1dcf1, type: 3}
@@ -96948,6 +97044,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1052951203}
   - component: {fileID: 1052951204}
+  - component: {fileID: 1052951205}
   m_Layer: 0
   m_Name: M58B_Fill_Cool
   m_TagString: Untagged
@@ -97035,6 +97132,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1052951205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1052951202}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!65 &1053964756
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -105097,6 +105223,11 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.13, y: 0.13, z: 0.76}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!137 &1226219098 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8588284438597880519, guid: 3692482afb2cff74891ac815faa3df85, type: 3}
+  m_PrefabInstance: {fileID: 40318597}
+  m_PrefabAsset: {fileID: 0}
 --- !u!64 &1227346564
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -111021,7 +111152,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 828b275732cc6b14b91642902c27ffe4, type: 2}
+  - {fileID: 2100000, guid: 419ebd4270bd09b4a83bbca1bcc0727c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -112266,6 +112397,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1364726587}
   - component: {fileID: 1364726588}
+  - component: {fileID: 1364726589}
   m_Layer: 0
   m_Name: M58B_Rim_Warm
   m_TagString: Untagged
@@ -112353,6 +112485,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1364726589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364726586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!114 &1365726670
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -127254,6 +127415,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1648853272}
   - component: {fileID: 1648853273}
+  - component: {fileID: 1648853274}
   m_Layer: 0
   m_Name: M58B_Key_Warm
   m_TagString: Untagged
@@ -127341,6 +127503,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &1648853274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1648853271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1649890973
 GameObject:
   m_ObjectHideFlags: 0
@@ -145172,6 +145363,11 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.13, y: 0.13, z: 0.76}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1854401083 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4695968589553237159, guid: 44dbd67c6a05726438f3f6d9e8599ce7, type: 3}
+  m_PrefabInstance: {fileID: 1362599622}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &1855396823
 MonoBehaviour:
   m_ObjectHideFlags: 0
