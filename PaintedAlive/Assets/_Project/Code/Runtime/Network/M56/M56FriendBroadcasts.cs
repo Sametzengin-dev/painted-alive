@@ -70,6 +70,7 @@ namespace PaintedAlive.Networking.M56
         public uint Sequence;
         public int RoleRevision;
         public int OriginClientId;
+        public int StrokeId;
         public int Shape;
         public Vector3[] Points;
         public float DrawSpeed;
@@ -80,6 +81,42 @@ namespace PaintedAlive.Networking.M56
         public float CutResistance;
         public float LifecycleDuration;
         public float Budget;
+    }
+
+    public struct M56OilCutBroadcast : IBroadcast
+    {
+        public int SessionGeneration;
+        public uint Sequence;
+        public int RoleRevision;
+        public int OriginClientId;
+        public int StrokeId;
+        public Vector3 Point;
+        public float GapWidth;
+    }
+
+    public struct M56OilPreviewBroadcast : IBroadcast
+    {
+        public int SessionGeneration;
+        public uint Sequence;
+        public int RoleRevision;
+        public int OriginClientId;
+        public uint PreviewId;
+        public bool Visible;
+        public int Shape;
+        public Vector3[] Points;
+        public float Width;
+    }
+
+    public struct M56PainterPresenceBroadcast : IBroadcast
+    {
+        public int SessionGeneration;
+        public uint Sequence;
+        public int RoleRevision;
+        public int OriginClientId;
+        public Vector3 Position;
+        public Vector3 FocusPoint;
+        public Vector3 Forward;
+        public bool Painting;
     }
 
     public struct M56OilClearBroadcast : IBroadcast

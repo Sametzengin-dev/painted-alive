@@ -78,6 +78,13 @@ namespace PaintedAlive.Painters
         private OilStrokeShape activeShape =
             OilStrokeShape.Wall;
 
+        private const float PreviewNetworkInterval = 1f / 15f;
+        private uint localPreviewId;
+        private uint remotePreviewId;
+        private int remotePreviewPointCount;
+        private float nextPreviewNetworkAt;
+        private int lastPreviewNetworkPointCount;
+
         public Camera OutputCamera => outputCamera;
         public LayerMask PaintSurfaceMask => paintSurfaceMask;
 
@@ -114,6 +121,74 @@ namespace PaintedAlive.Painters
 
                 : OilStrokePressureProfile.Balanced;
 
+        public bool TryGetNetworkPresence(
+            out Vector3 position,
+            out Vector3 focusPoint,
+            out Vector3 forward,
+            out bool painting)
+        {
+            position = default;
+            focusPoint = default;
+            forward = Vector3.forward;
+            painting = IsPreviewing;
+
+            if (outputCamera == null)
+                return false;
+
+            Transform cameraTransform = outputCamera.transform;
+            position = cameraTransform.position;
+            forward = cameraTransform.forward;
+            focusPoint = brushVisual != null && brushVisual.gameObject.activeInHierarchy
+                ? brushVisual.position
+                : position + forward * 8f;
+            return true;
+        }
+
+        public void ApplyReplicatedPreview(
+            uint previewId,
+            bool visible,
+            Vector3[] points,
+            OilStrokeShape shape,
+            float width)
+        {
+            if (previewId < remotePreviewId || strokePreview == null)
+                return;
+
+            if (previewId == remotePreviewId &&
+                visible &&
+                points != null &&
+                points.Length < remotePreviewPointCount)
+            {
+                return;
+            }
+
+            if (previewId > remotePreviewId)
+                remotePreviewPointCount = 0;
+
+            remotePreviewId = previewId;
+
+            if (!visible || points == null || points.Length == 0)
+            {
+                strokePreview.positionCount = 0;
+                strokePreview.enabled = false;
+                remotePreviewPointCount = 0;
+                return;
+            }
+
+            strokePreview.useWorldSpace = true;
+            strokePreview.startWidth = Mathf.Clamp(width, 0.08f, 1.5f);
+            strokePreview.endWidth = strokePreview.startWidth;
+            Color color = shape == OilStrokeShape.Ramp
+                ? new Color(1f, 0.42f, 0.10f, 0.88f)
+                : new Color(0.12f, 0.78f, 0.86f, 0.88f);
+            strokePreview.startColor = color;
+            strokePreview.endColor = color;
+            strokePreview.positionCount = points.Length;
+            strokePreview.SetPositions(points);
+            strokePreview.enabled = true;
+            remotePreviewPointCount = points.Length;
+        }
+
 
         private void Awake()
         {
@@ -135,6 +210,7 @@ namespace PaintedAlive.Painters
         }
 
         public bool ApplyReplicatedStroke(
+            int networkStrokeId,
             Vector3[] points,
             OilStrokeShape shape,
             OilStrokePressureProfile pressureProfile)
@@ -146,7 +222,8 @@ namespace PaintedAlive.Painters
                 return false;
             }
 
-            if (!strokeSystem.BeginStroke(
+            if (!strokeSystem.BeginReplicatedStroke(
+                    networkStrokeId,
                     points[0],
                     shape,
                     pressureProfile))
@@ -162,7 +239,25 @@ namespace PaintedAlive.Painters
             }
 
             strokeSystem.EndStroke();
+            ApplyReplicatedPreview(
+                remotePreviewId,
+                false,
+                System.Array.Empty<Vector3>(),
+                shape,
+                0.2f);
             return accepted >= 2;
+        }
+
+        public bool ApplyReplicatedCut(
+            int networkStrokeId,
+            Vector3 worldPoint,
+            float gapWidth)
+        {
+            return strokeSystem != null &&
+                   strokeSystem.TryApplyReplicatedCut(
+                       networkStrokeId,
+                       worldPoint,
+                       gapWidth);
         }
 
         public void ApplyReplicatedClear()
@@ -172,6 +267,13 @@ namespace PaintedAlive.Painters
 
             if (strokeBudget != null)
                 strokeBudget.ResetBudget();
+
+            ApplyReplicatedPreview(
+                remotePreviewId,
+                false,
+                System.Array.Empty<Vector3>(),
+                OilStrokeShape.Wall,
+                0.2f);
         }
 
         private void OnEnable()
@@ -310,6 +412,9 @@ namespace PaintedAlive.Painters
 
             previewPoints.Clear();
             previewPoints.Add(startPoint);
+            localPreviewId++;
+            nextPreviewNetworkAt = 0f;
+            lastPreviewNetworkPointCount = 0;
 
             if (pressureTracker != null)
             {
@@ -333,6 +438,7 @@ namespace PaintedAlive.Painters
             strokePreview.SetPosition(0, startPoint);
 
             UpdatePreviewAppearance();
+            PublishPreviewIfNeeded(force: true, visible: true);
         }
 
         private void UpdatePreview(
@@ -359,6 +465,7 @@ namespace PaintedAlive.Painters
                 CalculatePreviewCost();
 
             UpdatePreviewAppearance();
+            PublishPreviewIfNeeded(force: false, visible: true);
         }
 
         private void AppendPreviewPoint(Vector3 point)
@@ -480,6 +587,11 @@ namespace PaintedAlive.Painters
 
             strokeSystem.EndStroke();
 
+            int networkStrokeId =
+                strokeSystem.LastFinalizedStroke != null
+                    ? strokeSystem.LastFinalizedStroke.NetworkStrokeId
+                    : 0;
+
             if (acceptedPointCount < 2)
             {
                 CancelPreview();
@@ -501,9 +613,12 @@ namespace PaintedAlive.Painters
             pigmentReservoir.SetConsuming(false);
             state = BrushState.Idle;
 
+            PublishPreviewIfNeeded(force: true, visible: false);
+
             ClearPreview();
 
             PaintedAliveNetworkGameplayBridge.NotifyLocalOilStroke(
+                networkStrokeId,
                 committedPoints,
                 committedShape,
                 committedProfile);
@@ -601,6 +716,11 @@ namespace PaintedAlive.Painters
 
         private void CancelPreview()
         {
+            if (state == BrushState.Previewing)
+            {
+                PublishPreviewIfNeeded(force: true, visible: false);
+            }
+
             pigmentReservoir.SetConsuming(false);
             state = BrushState.Idle;
 
@@ -609,6 +729,11 @@ namespace PaintedAlive.Painters
 
         private void CancelCurrentInteraction()
         {
+            if (state == BrushState.Previewing)
+            {
+                PublishPreviewIfNeeded(force: true, visible: false);
+            }
+
             if (strokeSystem != null &&
                 strokeSystem.IsDrawing)
             {
@@ -621,6 +746,33 @@ namespace PaintedAlive.Painters
             state = BrushState.Idle;
 
             ClearPreview();
+        }
+
+        private void PublishPreviewIfNeeded(bool force, bool visible)
+        {
+            if (!PaintedAliveNetworkGameplayBridge.NetworkSessionActive)
+                return;
+
+            if (!force &&
+                (Time.unscaledTime < nextPreviewNetworkAt ||
+                 previewPoints.Count == lastPreviewNetworkPointCount))
+            {
+                return;
+            }
+
+            float width = strokeSystem != null
+                ? strokeSystem.GetPreviewWidth(activeShape, CurrentPressureProfile) * 0.65f
+                : 0.2f;
+
+            PaintedAliveNetworkGameplayBridge.NotifyLocalOilPreview(
+                localPreviewId,
+                visible,
+                visible ? previewPoints.ToArray() : System.Array.Empty<Vector3>(),
+                activeShape,
+                width);
+
+            nextPreviewNetworkAt = Time.unscaledTime + PreviewNetworkInterval;
+            lastPreviewNetworkPointCount = previewPoints.Count;
         }
 
         private void ClearPreview()

@@ -97,6 +97,7 @@ namespace PaintedAlive.Painters.Masterpiece
 
         [SerializeField] private int strokePointCount;
         [SerializeField] private int contentHash;
+        [SerializeField] private Vector3 deploymentScale = Vector3.one;
 
         public int SourceAssemblyRevision => sourceAssemblyRevision;
         public IReadOnlyList<PrototypeMasterpieceStrokeSnapshot> Strokes =>
@@ -105,6 +106,7 @@ namespace PaintedAlive.Painters.Masterpiece
             parts;
         public int StrokePointCount => strokePointCount;
         public int ContentHash => contentHash;
+        public Vector3 DeploymentScale => deploymentScale;
 
         public static bool TryCreate(
             PrototypeLivingSideCanvasController sideCanvas,
@@ -169,7 +171,8 @@ namespace PaintedAlive.Painters.Masterpiece
                 new PrototypeMasterpieceDeploymentSnapshot
                 {
                     sourceAssemblyRevision =
-                        assembly.AssemblyRevision
+                        assembly.AssemblyRevision,
+                    deploymentScale = sideCanvas.DeploymentScale
                 };
 
             IReadOnlyList<PrototypeSideCanvasStroke> sourceStrokes =
@@ -247,6 +250,9 @@ namespace PaintedAlive.Painters.Masterpiece
                 int hash = 17;
                 hash = hash * 31 + sourceAssemblyRevision;
                 hash = hash * 31 + strokePointCount;
+                hash = hash * 31 + Mathf.RoundToInt(deploymentScale.x * 1000f);
+                hash = hash * 31 + Mathf.RoundToInt(deploymentScale.y * 1000f);
+                hash = hash * 31 + Mathf.RoundToInt(deploymentScale.z * 1000f);
 
                 for (int strokeIndex = 0;
                      strokeIndex < strokes.Count;
@@ -264,6 +270,15 @@ namespace PaintedAlive.Painters.Masterpiece
                         Mathf.RoundToInt(
                             stroke.NormalizedWidth *
                             10000f);
+
+                    hash = hash * 31 +
+                        Mathf.RoundToInt(stroke.Color.r * 255f);
+                    hash = hash * 31 +
+                        Mathf.RoundToInt(stroke.Color.g * 255f);
+                    hash = hash * 31 +
+                        Mathf.RoundToInt(stroke.Color.b * 255f);
+                    hash = hash * 31 +
+                        Mathf.RoundToInt(stroke.Color.a * 255f);
 
                     for (int pointIndex = 0;
                          pointIndex < stroke.Points.Count;

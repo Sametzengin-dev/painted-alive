@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using PaintedAlive.Painters.SideCanvas;
+using PaintedAlive.Painters.Masterpiece;
 using PaintedAlive.UI.UnifiedHUD;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -324,7 +325,7 @@ namespace PaintedAlive.Editor
                     CreateText(
                         canvasRect,
                         "HelpText",
-                        "SOL TIK: ÇİZ / MARKER YERLEŞTİR   •   SAĞ TIK: SON MARKER'I KALDIR   •   SPACE: AĞIR SALDIRI ÖN İZLEME   •   ESC: KAPAT",
+                        "SOL TIK: ÇİZ / MARKER SÜRÜKLE   •   1-6: RENK   •   OKLAR: X/Y   •   PGUP/PGDN: Z   •   HOME: SIFIRLA   •   ESC: KAPAT",
                         13,
                         FontStyle.Normal,
                         TextAnchor.MiddleCenter,
@@ -352,13 +353,46 @@ namespace PaintedAlive.Editor
                             0.030f,
                             0.96f));
 
+                RectTransform paletteRect =
+                    CreatePanel(
+                        canvasRect,
+                        "ColorPalette",
+                        new Vector2(0.02f, 0f),
+                        new Vector2(0.17f, 0f),
+                        new Vector2(0.5f, 0f),
+                        new Vector2(0f, 78f),
+                        new Vector2(0f, 52f),
+                        new Color(0.035f, 0.032f, 0.030f, 0.96f));
+
+                Button[] colorButtons = new Button[6];
+                Text[] colorLabels = new Text[6];
+
+                for (int colorIndex = 0; colorIndex < colorButtons.Length; colorIndex++)
+                {
+                    float minimum = colorIndex / 6f;
+                    float maximum = (colorIndex + 1) / 6f;
+                    Color swatch = controller.GetDrawingPaletteColor(colorIndex);
+
+                    colorButtons[colorIndex] =
+                        CreateButton(
+                            paletteRect,
+                            $"ColorButton_{colorIndex + 1}",
+                            (colorIndex + 1).ToString(),
+                            new Vector2(minimum, 0f),
+                            new Vector2(maximum, 1f),
+                            swatch,
+                            colorIndex == 5 ? Ink : Paper,
+                            out colorLabels[colorIndex]);
+
+                }
+
                 Button advanceButton =
                     CreateButton(
                         toolbarRect,
                         "AdvanceButton",
                         "RİGLE",
                         new Vector2(0.00f, 0f),
-                        new Vector2(0.22f, 1f),
+                        new Vector2(0.18f, 1f),
                         Orange,
                         Paper,
                         out Text advanceLabel);
@@ -368,8 +402,8 @@ namespace PaintedAlive.Editor
                         toolbarRect,
                         "UndoButton",
                         "GERİ AL",
-                        new Vector2(0.23f, 0f),
-                        new Vector2(0.39f, 1f),
+                        new Vector2(0.19f, 0f),
+                        new Vector2(0.33f, 1f),
                         new Color(0.15f, 0.14f, 0.13f, 1f),
                         Paper,
                         out _);
@@ -379,8 +413,8 @@ namespace PaintedAlive.Editor
                         toolbarRect,
                         "ClearButton",
                         "TEMİZLE",
-                        new Vector2(0.40f, 0f),
-                        new Vector2(0.56f, 1f),
+                        new Vector2(0.34f, 0f),
+                        new Vector2(0.48f, 1f),
                         new Color(0.24f, 0.09f, 0.07f, 1f),
                         Paper,
                         out _);
@@ -390,18 +424,29 @@ namespace PaintedAlive.Editor
                         toolbarRect,
                         "AttackButton",
                         "TEST KİLİTLİ",
-                        new Vector2(0.57f, 0f),
-                        new Vector2(0.79f, 1f),
+                        new Vector2(0.49f, 0f),
+                        new Vector2(0.66f, 1f),
                         Cyan,
                         Ink,
                         out Text attackLabel);
+
+                Button deployButton =
+                    CreateButton(
+                        toolbarRect,
+                        "DeployButton",
+                        "AKTARIM KİLİTLİ",
+                        new Vector2(0.67f, 0f),
+                        new Vector2(0.84f, 1f),
+                        new Color(0.08f, 0.42f, 0.31f, 1f),
+                        Paper,
+                        out Text deployLabel);
 
                 Button closeButton =
                     CreateButton(
                         toolbarRect,
                         "CloseButton",
                         "KAPAT",
-                        new Vector2(0.80f, 0f),
+                        new Vector2(0.85f, 0f),
                         new Vector2(1.00f, 1f),
                         new Color(0.12f, 0.11f, 0.10f, 1f),
                         Paper,
@@ -485,7 +530,9 @@ namespace PaintedAlive.Editor
                     undoButton,
                     clearButton,
                     attackButton,
-                    closeButton);
+                    deployButton,
+                    closeButton,
+                    colorButtons);
 
                 PrototypeSideCanvasToolbar toolbar =
                     GetOrAdd<
@@ -498,9 +545,16 @@ namespace PaintedAlive.Editor
                     undoButton,
                     clearButton,
                     attackButton,
+                    deployButton,
                     closeButton,
                     advanceLabel,
-                    attackLabel);
+                    attackLabel,
+                    deployLabel,
+                    colorButtons,
+                    colorLabels,
+                    UnityEngine.Object.FindFirstObjectByType<
+                        PrototypeMasterpieceWorldDeploymentController>(
+                            FindObjectsInactive.Include));
 
                 EditorUtility.SetDirty(root);
                 EditorUtility.SetDirty(controller);
@@ -548,10 +602,12 @@ namespace PaintedAlive.Editor
                     "PuppetPreview=True\n" +
                     "SurfaceGraphicSeparateChild=True\n" +
                     "SetupIdempotent=True\n" +
-                    "DeployEnabled=False\n" +
+                    "DeployEnabled=TrueWhenPreviewValid\n" +
+                    "DeploymentScale3D=True\n" +
+                    "DeployToolbarButton=True\n" +
                     "BossAIEnabled=False\n" +
                     "GameplayAuthoritiesModified=False\n" +
-                    "NetworkIntegrationParked=True",
+                    "RealtimeNetworkPreview=M56",
                     root);
 
                 EditorUtility.DisplayDialog(

@@ -1,4 +1,5 @@
 using PaintedAlive.Core.RoleAuthority;
+using PaintedAlive.Figures;
 using PaintedAlive.Painters.SideCanvas;
 using PaintedAlive.UI;
 using UnityEngine;
@@ -23,6 +24,9 @@ namespace PaintedAlive.Painters.Masterpiece
         private PrototypeMasterpieceRouteAnchor routeAnchor;
 
         [SerializeField] private Transform worldInstanceParent;
+        [SerializeField] private FigureMotor deploymentReference;
+        [SerializeField] private Material worldStrokeMaterialTemplate;
+        [SerializeField] private Material worldProxyMaterialTemplate;
 
         [Header("HUD")]
         [SerializeField] private CanvasGroup statusGroup;
@@ -132,6 +136,9 @@ namespace PaintedAlive.Painters.Masterpiece
             PrototypeMasterpieceAssemblyController configuredAssembly,
             PrototypeMasterpieceRouteAnchor configuredRouteAnchor,
             Transform configuredWorldInstanceParent,
+            FigureMotor configuredDeploymentReference,
+            Material configuredWorldStrokeMaterialTemplate,
+            Material configuredWorldProxyMaterialTemplate,
             CanvasGroup configuredStatusGroup,
             Text configuredTitleText,
             Text configuredStateText,
@@ -144,6 +151,9 @@ namespace PaintedAlive.Painters.Masterpiece
             routeAnchor = configuredRouteAnchor;
             worldInstanceParent =
                 configuredWorldInstanceParent;
+            deploymentReference = configuredDeploymentReference;
+            worldStrokeMaterialTemplate = configuredWorldStrokeMaterialTemplate;
+            worldProxyMaterialTemplate = configuredWorldProxyMaterialTemplate;
 
             statusGroup = configuredStatusGroup;
             titleText = configuredTitleText;
@@ -413,15 +423,6 @@ namespace PaintedAlive.Painters.Masterpiece
                 return;
             }
 
-            if (!routeAnchor.ValidatePlacement(
-                    worldInstanceParent,
-                    out string placementReason))
-            {
-                Reject(
-                    placementReason);
-                return;
-            }
-
             if (!PrototypeMasterpieceDeploymentSnapshot.TryCreate(
                     sideCanvas,
                     assembly,
@@ -430,6 +431,25 @@ namespace PaintedAlive.Painters.Masterpiece
             {
                 Reject(
                     snapshotReason);
+                return;
+            }
+
+            if (deploymentReference == null)
+            {
+                deploymentReference = FindFirstObjectByType<FigureMotor>(
+                    FindObjectsInactive.Exclude);
+            }
+
+            if (!routeAnchor.TryPrepareNearReference(
+                    deploymentReference != null
+                        ? deploymentReference.transform
+                        : null,
+                    worldInstanceParent,
+                    snapshot.DeploymentScale,
+                    out string placementReason))
+            {
+                Reject(
+                    placementReason);
                 return;
             }
 
@@ -451,6 +471,8 @@ namespace PaintedAlive.Painters.Masterpiece
             if (!instance.Build(
                     snapshot,
                     routeAnchor,
+                    worldStrokeMaterialTemplate,
+                    worldProxyMaterialTemplate,
                     out string buildReason))
             {
                 Destroy(
@@ -470,7 +492,7 @@ namespace PaintedAlive.Painters.Masterpiece
                 snapshot.ContentHash;
 
             lastAction =
-                "Deploy başarılı • Baş Yapıt route anchor'a aktarıldı.";
+                "Deploy başarılı • Baş Yapıt yakında ve görünür olarak oluşturuldu.";
 
             Debug.Log(
                 "[M47 Deploy Success]\n" +

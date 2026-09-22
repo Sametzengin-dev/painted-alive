@@ -24,7 +24,9 @@ namespace PaintedAlive.Painters.SideCanvas
         [SerializeField] private Button undoButton;
         [SerializeField] private Button clearButton;
         [SerializeField] private Button attackButton;
+        [SerializeField] private Button deployButton;
         [SerializeField] private Button closeButton;
+        [SerializeField] private Button[] colorButtons = new Button[0];
 
         [Header("Virtual Pointer")]
         [SerializeField, Range(0.25f, 3f)]
@@ -79,7 +81,9 @@ namespace PaintedAlive.Painters.SideCanvas
             Button configuredUndoButton,
             Button configuredClearButton,
             Button configuredAttackButton,
-            Button configuredCloseButton)
+            Button configuredDeployButton,
+            Button configuredCloseButton,
+            Button[] configuredColorButtons)
         {
             controller = configuredController;
             cursorRect = configuredCursorRect;
@@ -89,7 +93,9 @@ namespace PaintedAlive.Painters.SideCanvas
             undoButton = configuredUndoButton;
             clearButton = configuredClearButton;
             attackButton = configuredAttackButton;
+            deployButton = configuredDeployButton;
             closeButton = configuredCloseButton;
+            colorButtons = configuredColorButtons ?? new Button[0];
 
             cursorGroup.interactable = false;
             cursorGroup.blocksRaycasts = false;
@@ -320,6 +326,7 @@ namespace PaintedAlive.Painters.SideCanvas
                 undoButton,
                 clearButton,
                 attackButton,
+                deployButton,
                 closeButton
             };
 
@@ -329,6 +336,7 @@ namespace PaintedAlive.Painters.SideCanvas
                 "Undo",
                 "Clear",
                 "Attack",
+                "Deploy",
                 "Close"
             };
 
@@ -355,6 +363,26 @@ namespace PaintedAlive.Painters.SideCanvas
                             null))
                 {
                     targetName = names[index];
+                    return button;
+                }
+            }
+
+            for (int index = 0; index < colorButtons.Length; index++)
+            {
+                Button button = colorButtons[index];
+                if (button == null)
+                {
+                    continue;
+                }
+
+                RectTransform rect = button.transform as RectTransform;
+                if (rect != null &&
+                    RectTransformUtility.RectangleContainsScreenPoint(
+                        rect,
+                        screenPoint,
+                        null))
+                {
+                    targetName = $"Color{index + 1}";
                     return button;
                 }
             }

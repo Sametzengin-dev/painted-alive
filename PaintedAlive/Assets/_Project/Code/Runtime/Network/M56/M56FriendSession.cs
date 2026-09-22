@@ -41,6 +41,7 @@ namespace PaintedAlive.Networking.M56
     {
         private const int NoClient = -1;
         private const float FigureSendInterval = 1f / 30f;
+        private const float PainterPresenceSendInterval = 1f / 12f;
         private const float FigureHardReconcileDistance = 2.5f;
         private const float RemoteFigureInterpolationSharpness = 18f;
         private const float MaximumSnapshotJump = 25f;
@@ -98,7 +99,9 @@ namespace PaintedAlive.Networking.M56
         private readonly Dictionary<int, string> playerNames = new();
 
         private float nextFigureSendAt;
+        private float nextPainterPresenceSendAt;
         private uint localFigureSequence;
+        private uint localPainterPresenceSequence;
         private uint serverFigureSequence;
         private uint localGameplaySequence;
         private uint localActionRequestId;
@@ -110,6 +113,12 @@ namespace PaintedAlive.Networking.M56
         private Vector3 remoteFigureTargetPosition;
         private Quaternion remoteFigureTargetRotation = Quaternion.identity;
         private Vector3 remoteFigureTargetVelocity;
+        private bool hasRemotePainterPresence;
+        private Vector3 remotePainterPosition;
+        private Vector3 remotePainterFocusPoint;
+        private Vector3 remotePainterForward = Vector3.forward;
+        private bool remotePainterPainting;
+        private float remotePainterPresenceReceivedAt;
         private bool registered;
         private bool twoPlayersWereReady;
         private bool hasAuthoritativeLocalRole;
@@ -384,10 +393,19 @@ namespace PaintedAlive.Networking.M56
             UpdateLocalPresentation();
             UpdateRemoteFigureInterpolation();
 
-            if (!NetworkSessionActive ||
-                !IsLocalFigure ||
+            if (!NetworkSessionActive || roleAuthority == null)
+            {
+                return;
+            }
+
+            if (IsLocalPainter &&
+                roleAuthority.CurrentRole == PaintedAliveLocalRole.InkPainter)
+            {
+                PublishPainterPresenceIfDue();
+            }
+
+            if (!IsLocalFigure ||
                 figureMotor == null ||
-                roleAuthority == null ||
                 roleAuthority.CurrentRole != PaintedAliveLocalRole.Figure)
             {
                 return;
@@ -493,6 +511,7 @@ namespace PaintedAlive.Networking.M56
         }
 
         public void PublishLocalOilStroke(
+            int networkStrokeId,
             Vector3[] points,
             OilStrokeShape shape,
             OilStrokePressureProfile profile)
@@ -512,6 +531,7 @@ namespace PaintedAlive.Networking.M56
                     Sequence = localGameplaySequence,
                     RoleRevision = roleRevision,
                     OriginClientId = localClientId,
+                    StrokeId = networkStrokeId,
                     Shape = (int)shape,
                     Points = points,
                     DrawSpeed = profile.AverageDrawSpeed,
@@ -522,6 +542,32 @@ namespace PaintedAlive.Networking.M56
                     CutResistance = profile.CutResistanceMultiplier,
                     LifecycleDuration = profile.LifecycleDurationMultiplier,
                     Budget = profile.BudgetMultiplier
+                });
+        }
+
+        public void PublishLocalOilCut(
+            int networkStrokeId,
+            Vector3 point,
+            float gapWidth)
+        {
+            if (!NetworkSessionActive ||
+                !IsLocalFigure ||
+                networkStrokeId <= 0)
+            {
+                return;
+            }
+
+            localGameplaySequence++;
+            networkManager.ClientManager.Broadcast(
+                new M56OilCutBroadcast
+                {
+                    SessionGeneration = sessionGeneration,
+                    Sequence = localGameplaySequence,
+                    RoleRevision = roleRevision,
+                    OriginClientId = localClientId,
+                    StrokeId = networkStrokeId,
+                    Point = point,
+                    GapWidth = gapWidth
                 });
         }
 
@@ -540,6 +586,66 @@ namespace PaintedAlive.Networking.M56
                     RoleRevision = roleRevision,
                     OriginClientId = localClientId
                 });
+        }
+
+        public void PublishLocalOilPreview(
+            uint previewId,
+            bool visible,
+            Vector3[] points,
+            OilStrokeShape shape,
+            float width)
+        {
+            if (!NetworkSessionActive || !IsLocalPainter)
+                return;
+
+            localGameplaySequence++;
+
+            networkManager.ClientManager.Broadcast(
+                new M56OilPreviewBroadcast
+                {
+                    SessionGeneration = sessionGeneration,
+                    Sequence = localGameplaySequence,
+                    RoleRevision = roleRevision,
+                    OriginClientId = localClientId,
+                    PreviewId = previewId,
+                    Visible = visible,
+                    Shape = (int)shape,
+                    Points = points,
+                    Width = width
+                },
+                visible ? Channel.Unreliable : Channel.Reliable);
+        }
+
+        private void PublishPainterPresenceIfDue()
+        {
+            if (Time.unscaledTime < nextPainterPresenceSendAt ||
+                painterBrush == null ||
+                !painterBrush.TryGetNetworkPresence(
+                    out Vector3 position,
+                    out Vector3 focusPoint,
+                    out Vector3 forward,
+                    out bool painting))
+            {
+                return;
+            }
+
+            nextPainterPresenceSendAt =
+                Time.unscaledTime + PainterPresenceSendInterval;
+            localPainterPresenceSequence++;
+
+            networkManager.ClientManager.Broadcast(
+                new M56PainterPresenceBroadcast
+                {
+                    SessionGeneration = sessionGeneration,
+                    Sequence = localPainterPresenceSequence,
+                    RoleRevision = roleRevision,
+                    OriginClientId = localClientId,
+                    Position = position,
+                    FocusPoint = focusPoint,
+                    Forward = forward,
+                    Painting = painting
+                },
+                Channel.Unreliable);
         }
 
         public void PublishLocalInkCreature(
@@ -736,6 +842,12 @@ namespace PaintedAlive.Networking.M56
                 Server_OnWorldActionRequest);
             networkManager.ServerManager.RegisterBroadcast<M56OilStrokeBroadcast>(
                 Server_OnOilStroke);
+            networkManager.ServerManager.RegisterBroadcast<M56OilPreviewBroadcast>(
+                Server_OnOilPreview);
+            networkManager.ServerManager.RegisterBroadcast<M56OilCutBroadcast>(
+                Server_OnOilCut);
+            networkManager.ServerManager.RegisterBroadcast<M56PainterPresenceBroadcast>(
+                Server_OnPainterPresence);
             networkManager.ServerManager.RegisterBroadcast<M56OilClearBroadcast>(
                 Server_OnOilClear);
             networkManager.ServerManager.RegisterBroadcast<M56InkCreatureBroadcast>(
@@ -751,6 +863,12 @@ namespace PaintedAlive.Networking.M56
                 Client_OnGameplayFeedback);
             networkManager.ClientManager.RegisterBroadcast<M56OilStrokeBroadcast>(
                 Client_OnOilStroke);
+            networkManager.ClientManager.RegisterBroadcast<M56OilPreviewBroadcast>(
+                Client_OnOilPreview);
+            networkManager.ClientManager.RegisterBroadcast<M56OilCutBroadcast>(
+                Client_OnOilCut);
+            networkManager.ClientManager.RegisterBroadcast<M56PainterPresenceBroadcast>(
+                Client_OnPainterPresence);
             networkManager.ClientManager.RegisterBroadcast<M56OilClearBroadcast>(
                 Client_OnOilClear);
             networkManager.ClientManager.RegisterBroadcast<M56InkCreatureBroadcast>(
@@ -787,6 +905,12 @@ namespace PaintedAlive.Networking.M56
                 Server_OnWorldActionRequest);
             networkManager.ServerManager.UnregisterBroadcast<M56OilStrokeBroadcast>(
                 Server_OnOilStroke);
+            networkManager.ServerManager.UnregisterBroadcast<M56OilPreviewBroadcast>(
+                Server_OnOilPreview);
+            networkManager.ServerManager.UnregisterBroadcast<M56OilCutBroadcast>(
+                Server_OnOilCut);
+            networkManager.ServerManager.UnregisterBroadcast<M56PainterPresenceBroadcast>(
+                Server_OnPainterPresence);
             networkManager.ServerManager.UnregisterBroadcast<M56OilClearBroadcast>(
                 Server_OnOilClear);
             networkManager.ServerManager.UnregisterBroadcast<M56InkCreatureBroadcast>(
@@ -802,6 +926,12 @@ namespace PaintedAlive.Networking.M56
                 Client_OnGameplayFeedback);
             networkManager.ClientManager.UnregisterBroadcast<M56OilStrokeBroadcast>(
                 Client_OnOilStroke);
+            networkManager.ClientManager.UnregisterBroadcast<M56OilPreviewBroadcast>(
+                Client_OnOilPreview);
+            networkManager.ClientManager.UnregisterBroadcast<M56OilCutBroadcast>(
+                Client_OnOilCut);
+            networkManager.ClientManager.UnregisterBroadcast<M56PainterPresenceBroadcast>(
+                Client_OnPainterPresence);
             networkManager.ClientManager.UnregisterBroadcast<M56OilClearBroadcast>(
                 Client_OnOilClear);
             networkManager.ClientManager.UnregisterBroadcast<M56InkCreatureBroadcast>(
@@ -1279,6 +1409,126 @@ namespace PaintedAlive.Networking.M56
             ApplyOilStroke(message);
         }
 
+        private void Server_OnOilPreview(
+            NetworkConnection sender,
+            M56OilPreviewBroadcast message,
+            Channel channel)
+        {
+            if (!ValidatePainterSender(
+                    sender,
+                    message.SessionGeneration,
+                    message.RoleRevision,
+                    out _) ||
+                !ValidateOilPreview(message))
+            {
+                return;
+            }
+
+            if (!IsServerLocalClient(sender.ClientId))
+                ApplyOilPreview(message);
+
+            networkManager.ServerManager.Broadcast(
+                message,
+                channel: message.Visible
+                    ? Channel.Unreliable
+                    : Channel.Reliable);
+        }
+
+        private void Client_OnOilPreview(
+            M56OilPreviewBroadcast message,
+            Channel channel)
+        {
+            if (!NetworkSessionActive ||
+                message.SessionGeneration != sessionGeneration ||
+                message.RoleRevision != roleRevision ||
+                networkManager.ServerManager.Started ||
+                message.OriginClientId == localClientId)
+            {
+                return;
+            }
+
+            ApplyOilPreview(message);
+        }
+
+        private void Server_OnOilCut(
+            NetworkConnection sender,
+            M56OilCutBroadcast message,
+            Channel channel)
+        {
+            if (!ValidateFigureSender(
+                    sender,
+                    message.SessionGeneration,
+                    message.RoleRevision) ||
+                message.StrokeId <= 0 ||
+                !IsFinite(message.Point) ||
+                !IsFinite(message.GapWidth) ||
+                message.GapWidth < 0.05f ||
+                message.GapWidth > 5f)
+            {
+                return;
+            }
+
+            if (!IsServerLocalClient(sender.ClientId))
+                ApplyOilCut(message);
+
+            networkManager.ServerManager.Broadcast(message);
+        }
+
+        private void Client_OnOilCut(
+            M56OilCutBroadcast message,
+            Channel channel)
+        {
+            if (!NetworkSessionActive ||
+                message.SessionGeneration != sessionGeneration ||
+                message.RoleRevision != roleRevision ||
+                networkManager.ServerManager.Started ||
+                message.OriginClientId == localClientId)
+            {
+                return;
+            }
+
+            ApplyOilCut(message);
+        }
+
+        private void Server_OnPainterPresence(
+            NetworkConnection sender,
+            M56PainterPresenceBroadcast message,
+            Channel channel)
+        {
+            if (!ValidatePainterSender(
+                    sender,
+                    message.SessionGeneration,
+                    message.RoleRevision,
+                    out _) ||
+                !ValidatePainterPresence(message))
+            {
+                return;
+            }
+
+            if (!IsServerLocalClient(sender.ClientId))
+                ApplyPainterPresence(message);
+
+            networkManager.ServerManager.Broadcast(
+                message,
+                channel: Channel.Unreliable);
+        }
+
+        private void Client_OnPainterPresence(
+            M56PainterPresenceBroadcast message,
+            Channel channel)
+        {
+            if (!NetworkSessionActive ||
+                message.SessionGeneration != sessionGeneration ||
+                message.RoleRevision != roleRevision ||
+                networkManager.ServerManager.Started ||
+                message.OriginClientId == localClientId)
+            {
+                return;
+            }
+
+            ApplyPainterPresence(message);
+        }
+
         private void Server_OnOilClear(
             NetworkConnection sender,
             M56OilClearBroadcast message,
@@ -1495,6 +1745,18 @@ namespace PaintedAlive.Networking.M56
             return true;
         }
 
+        private bool ValidateFigureSender(
+            NetworkConnection sender,
+            int knownGeneration,
+            int knownRevision)
+        {
+            return sender != null &&
+                   sender.IsValid &&
+                   knownGeneration == sessionGeneration &&
+                   knownRevision == roleRevision &&
+                   sender.ClientId == figureClientId;
+        }
+
         private bool TryFindWorldAction(
             string systemReference,
             out INetworkReplicatedPainterWorldAction action)
@@ -1554,6 +1816,7 @@ namespace PaintedAlive.Networking.M56
             if (message.Points == null ||
                 message.Points.Length < 2 ||
                 message.Points.Length > MaximumStrokePoints ||
+                message.StrokeId <= 0 ||
                 (message.Shape != (int)OilStrokeShape.Wall &&
                  message.Shape != (int)OilStrokeShape.Ramp))
             {
@@ -1593,6 +1856,75 @@ namespace PaintedAlive.Networking.M56
                 IsFinite(message.Budget);
         }
 
+        private bool ValidateOilPreview(M56OilPreviewBroadcast message)
+        {
+            if (!message.Visible)
+                return IsFinite(message.Width);
+
+            if (message.Points == null ||
+                message.Points.Length == 0 ||
+                message.Points.Length > MaximumStrokePoints ||
+                (message.Shape != (int)OilStrokeShape.Wall &&
+                 message.Shape != (int)OilStrokeShape.Ramp) ||
+                !IsFinite(message.Width) ||
+                message.Width < 0.02f ||
+                message.Width > 2f)
+            {
+                return false;
+            }
+
+            float totalLength = 0f;
+            for (int index = 0; index < message.Points.Length; index++)
+            {
+                if (!IsFinite(message.Points[index]))
+                    return false;
+
+                if (index > 0)
+                {
+                    float segmentLength = Vector3.Distance(
+                        message.Points[index - 1],
+                        message.Points[index]);
+
+                    if (segmentLength > 5f)
+                        return false;
+
+                    totalLength += segmentLength;
+                }
+            }
+
+            return totalLength <= 80f;
+        }
+
+        private void ApplyOilPreview(M56OilPreviewBroadcast message)
+        {
+            painterBrush?.ApplyReplicatedPreview(
+                message.PreviewId,
+                message.Visible,
+                message.Points,
+                (OilStrokeShape)message.Shape,
+                message.Width);
+        }
+
+        private static bool ValidatePainterPresence(
+            M56PainterPresenceBroadcast message)
+        {
+            return IsFinite(message.Position) &&
+                   IsFinite(message.FocusPoint) &&
+                   IsFinite(message.Forward) &&
+                   message.Forward.sqrMagnitude > 0.25f;
+        }
+
+        private void ApplyPainterPresence(
+            M56PainterPresenceBroadcast message)
+        {
+            remotePainterPosition = message.Position;
+            remotePainterFocusPoint = message.FocusPoint;
+            remotePainterForward = message.Forward.normalized;
+            remotePainterPainting = message.Painting;
+            remotePainterPresenceReceivedAt = Time.unscaledTime;
+            hasRemotePainterPresence = true;
+        }
+
         private void ApplyOilStroke(M56OilStrokeBroadcast message)
         {
             if (painterBrush == null)
@@ -1610,9 +1942,18 @@ namespace PaintedAlive.Networking.M56
                     message.Budget);
 
             painterBrush.ApplyReplicatedStroke(
+                message.StrokeId,
                 message.Points,
                 (OilStrokeShape)message.Shape,
                 profile);
+        }
+
+        private void ApplyOilCut(M56OilCutBroadcast message)
+        {
+            painterBrush?.ApplyReplicatedCut(
+                message.StrokeId,
+                message.Point,
+                message.GapWidth);
         }
 
         private bool ValidateCreature(M56InkCreatureBroadcast message)
@@ -2187,6 +2528,12 @@ namespace PaintedAlive.Networking.M56
 
             float scale = Mathf.Clamp(Screen.height / 900f, 0.78f, 1.25f);
 
+            if (!developmentMenuOpen &&
+                rolePresentation == RolePresentation.None)
+            {
+                DrawPainterPresenceIndicator(scale);
+            }
+
             if (rolePresentation != RolePresentation.None)
             {
                 DrawRolePresentation(scale);
@@ -2195,6 +2542,69 @@ namespace PaintedAlive.Networking.M56
                 DrawDevelopmentMenu(scale);
             else
                 DrawCollapsedStatus(scale);
+        }
+
+        private void DrawPainterPresenceIndicator(float scale)
+        {
+            if (!IsLocalFigure ||
+                !hasRemotePainterPresence ||
+                Time.unscaledTime - remotePainterPresenceReceivedAt > 1.25f)
+            {
+                return;
+            }
+
+            Camera camera = Camera.main;
+            if (camera == null)
+                return;
+
+            Vector3 screen = camera.WorldToScreenPoint(remotePainterFocusPoint);
+            Vector2 center = new(Screen.width * 0.5f, Screen.height * 0.5f);
+            Vector2 point = new(screen.x, Screen.height - screen.y);
+            Vector2 direction = point - center;
+
+            if (screen.z < 0f)
+                direction = -direction;
+
+            if (direction.sqrMagnitude < 1f)
+                direction = Vector2.up;
+
+            float edge = 74f * scale;
+            point = center + direction.normalized *
+                Mathf.Min(direction.magnitude, Screen.height * 0.43f);
+            point.x = Mathf.Clamp(point.x, edge, Screen.width - edge);
+            point.y = Mathf.Clamp(point.y, edge, Screen.height - edge);
+
+            float distance = figureMotor != null
+                ? Vector3.Distance(
+                    figureMotor.transform.position,
+                    remotePainterFocusPoint)
+                : Vector3.Distance(camera.transform.position, remotePainterPosition);
+
+            string text = remotePainterPainting
+                ? $"◆ RESSAM ÇİZİYOR  •  {Mathf.Round(distance / 5f) * 5f:0} m"
+                : $"◇ RESSAM İZİ  •  {Mathf.Round(distance / 5f) * 5f:0} m";
+
+            GUIStyle style = new(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold,
+                fontSize = Mathf.RoundToInt(12f * scale)
+            };
+
+            Color previous = GUI.color;
+            float pulse = remotePainterPainting
+                ? 0.82f + Mathf.Sin(Time.unscaledTime * 8f) * 0.18f
+                : 0.68f;
+            GUI.color = new Color(0.12f, 0.88f, 0.92f, pulse);
+            GUI.Box(
+                new Rect(
+                    point.x - 82f * scale,
+                    point.y - 18f * scale,
+                    164f * scale,
+                    36f * scale),
+                text,
+                style);
+            GUI.color = previous;
         }
 
         private void DrawDevelopmentMenu(float scale)

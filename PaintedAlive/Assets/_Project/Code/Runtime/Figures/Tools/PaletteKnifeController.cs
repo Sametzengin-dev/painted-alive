@@ -218,6 +218,14 @@ namespace PaintedAlive.Figures.Tools
                     hit.point,
                     effectiveGapWidth);
 
+            if (cutSucceeded)
+            {
+                PaintedAliveNetworkGameplayBridge.NotifyLocalOilCut(
+                    stroke.NetworkStrokeId,
+                    hit.point,
+                    effectiveGapWidth);
+            }
+
             impactFeedback?.PlayCutResult(
                 hit.point,
                 hit.normal,

@@ -48,6 +48,7 @@ namespace PaintedAlive.Painters.Masterpiece
         [SerializeField] private bool allCollidersAreTriggers;
         [SerializeField] private bool kinematicBody;
         [SerializeField] private bool buildSucceeded;
+        [SerializeField] private bool runtimeMaterialsReady;
         [SerializeField] private bool semanticHeadPartitionEnabled = true;
         [SerializeField] private int semanticHeadVisualSegmentCount;
         [SerializeField] private int semanticHeadRenderedPointCount;
@@ -86,6 +87,7 @@ namespace PaintedAlive.Painters.Masterpiece
         public bool AllCollidersAreTriggers => allCollidersAreTriggers;
         public bool KinematicBody => kinematicBody;
         public bool BuildSucceeded => buildSucceeded;
+        public bool RuntimeMaterialsReady => runtimeMaterialsReady;
         public bool SemanticHeadPartitionEnabled =>
             semanticHeadPartitionEnabled;
         public int SemanticHeadVisualSegmentCount =>
@@ -102,6 +104,8 @@ namespace PaintedAlive.Painters.Masterpiece
         public bool Build(
             PrototypeMasterpieceDeploymentSnapshot snapshot,
             PrototypeMasterpieceRouteAnchor anchor,
+            Material strokeMaterialTemplate,
+            Material proxyMaterialTemplate,
             out string reason)
         {
             buildSucceeded = false;
@@ -136,6 +140,8 @@ namespace PaintedAlive.Painters.Masterpiece
                 anchor.DeploymentPosition,
                 anchor.DeploymentRotation);
 
+            transform.localScale = snapshot.DeploymentScale;
+
             snapshotHash = snapshot.ContentHash;
             sourceAssemblyRevision =
                 snapshot.SourceAssemblyRevision;
@@ -149,7 +155,18 @@ namespace PaintedAlive.Painters.Masterpiece
                     snapshot,
                     anchor);
 
-            CreateRuntimeMaterials();
+            CreateRuntimeMaterials(
+                strokeMaterialTemplate,
+                proxyMaterialTemplate);
+
+            if (!runtimeMaterialsReady)
+            {
+                reason =
+                    "Kukla görünür dünya materyali oluşturulamadı; deploy iptal edildi.";
+                lastBuildResult = reason;
+                return false;
+            }
+
             CreateKinematicBody();
 
             for (int index = 0;
@@ -209,6 +226,7 @@ namespace PaintedAlive.Painters.Masterpiece
                 colliderCount == 6 &&
                 allCollidersAreTriggers &&
                 kinematicBody &&
+                runtimeMaterialsReady &&
                 visualSegmentCount > 0;
 
             reason =
@@ -445,41 +463,95 @@ namespace PaintedAlive.Painters.Masterpiece
             };
         }
 
-        private void CreateRuntimeMaterials()
+        private void CreateRuntimeMaterials(
+            Material strokeTemplate,
+            Material proxyTemplate)
         {
-            Shader strokeShader =
-                Shader.Find(
-                    "Universal Render Pipeline/Unlit");
+            runtimeMaterialsReady = false;
+
+            if (strokeTemplate != null)
+            {
+                strokeMaterial = new Material(strokeTemplate)
+                {
+                    name = "M60_MasterpieceStroke_Runtime",
+                    hideFlags = HideFlags.DontSave
+                };
+            }
+
+            if (proxyTemplate != null)
+            {
+                proxyMaterial = new Material(proxyTemplate)
+                {
+                    name = "M60_MasterpieceProxy_Runtime",
+                    hideFlags = HideFlags.DontSave
+                };
+            }
+
+            Shader strokeShader = Shader.Find(
+                "PaintedAlive/M58 Final/Stroke Telegraph");
 
             if (strokeShader == null)
             {
-                strokeShader =
-                    Shader.Find(
-                        "Sprites/Default");
+                strokeShader = Shader.Find(
+                    "Universal Render Pipeline/Unlit");
             }
 
-            if (strokeShader != null)
+            if (strokeShader == null)
             {
-                strokeMaterial =
-                    new Material(
-                        strokeShader)
-                    {
-                        name =
-                            "M47_MasterpieceStroke_Runtime",
-                        hideFlags =
-                            HideFlags.DontSave
-                    };
-
-                proxyMaterial =
-                    new Material(
-                        strokeShader)
-                    {
-                        name =
-                            "M47_MasterpieceProxy_Runtime",
-                        hideFlags =
-                            HideFlags.DontSave
-                    };
+                strokeShader = Shader.Find("Sprites/Default");
             }
+
+            if (strokeMaterial == null && strokeShader != null)
+            {
+                strokeMaterial = new Material(strokeShader)
+                {
+                    name = "M60_MasterpieceStroke_Runtime",
+                    hideFlags = HideFlags.DontSave
+                };
+            }
+
+            if (proxyMaterial == null && strokeShader != null)
+            {
+                proxyMaterial = new Material(strokeShader)
+                {
+                    name = "M60_MasterpieceProxy_Runtime",
+                    hideFlags = HideFlags.DontSave
+                };
+            }
+
+            ConfigureVisibleLineMaterial(strokeMaterial, false);
+            ConfigureVisibleLineMaterial(proxyMaterial, true);
+            runtimeMaterialsReady =
+                strokeMaterial != null &&
+                strokeMaterial.shader != null &&
+                proxyMaterial != null &&
+                proxyMaterial.shader != null;
+        }
+
+        private static void ConfigureVisibleLineMaterial(
+            Material material,
+            bool proxy)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            Color white = Color.white;
+            if (material.HasProperty("_BaseColor"))
+                material.SetColor("_BaseColor", white);
+            if (material.HasProperty("_Color"))
+                material.SetColor("_Color", white);
+            if (material.HasProperty("_EdgeColor"))
+                material.SetColor("_EdgeColor", proxy
+                    ? new Color(0.12f, 0.82f, 0.90f, 1f)
+                    : white);
+            if (material.HasProperty("_DashFill"))
+                material.SetFloat("_DashFill", proxy ? 0.52f : 0.92f);
+            if (material.HasProperty("_PulseStrength"))
+                material.SetFloat("_PulseStrength", proxy ? 0.14f : 0.04f);
+
+            material.renderQueue = 3100;
         }
 
         private void CreateKinematicBody()
@@ -775,13 +847,18 @@ namespace PaintedAlive.Painters.Masterpiece
                 Color.Lerp(
                     stroke.Color,
                     partColor,
-                    0.72f);
+                    0.28f);
+
+            finalColor.a = 1f;
 
             line.startColor =
                 finalColor;
 
             line.endColor =
                 finalColor;
+
+            line.sortingOrder = 120;
+            line.enabled = true;
 
             originalStrokeRenderers.Add(
                 line);

@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Linq;
+using PaintedAlive.Figures;
 using PaintedAlive.Painters.Masterpiece;
 using PaintedAlive.Painters.SideCanvas;
 using PaintedAlive.UI.UnifiedHUD;
@@ -30,6 +31,9 @@ namespace PaintedAlive.Editor
 
         private const string PanelName =
             "M47_MasterpieceDeploymentPanel";
+
+        private const string WorldStrokeMaterialPath =
+            "Assets/_Project/Art/Materials/M60/MAT_LivingCanvasWorldStroke.mat";
 
         private static readonly Color Ink =
             new Color(
@@ -250,6 +254,9 @@ namespace PaintedAlive.Editor
                     assembly,
                     routeAnchor,
                     worldParent,
+                    figureMotor as FigureMotor,
+                    GetOrCreateWorldStrokeMaterial(),
+                    GetOrCreateWorldStrokeMaterial(),
                     group,
                     title,
                     state,
@@ -501,6 +508,65 @@ namespace PaintedAlive.Editor
             return Undo.AddComponent<
                 PrototypeMasterpieceRouteAnchor>(
                     anchorObject);
+        }
+
+        private static Material GetOrCreateWorldStrokeMaterial()
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(
+                WorldStrokeMaterialPath);
+
+            Shader shader = Shader.Find(
+                "PaintedAlive/M58 Final/Stroke Telegraph");
+
+            if (shader == null)
+            {
+                shader = Shader.Find("Universal Render Pipeline/Unlit");
+            }
+
+            if (shader == null)
+            {
+                return material;
+            }
+
+            if (!AssetDatabase.IsValidFolder(
+                    "Assets/_Project/Art/Materials/M60"))
+            {
+                AssetDatabase.CreateFolder(
+                    "Assets/_Project/Art/Materials",
+                    "M60");
+            }
+
+            if (material == null)
+            {
+                material = new Material(shader)
+                {
+                    name = "MAT_LivingCanvasWorldStroke"
+                };
+
+                AssetDatabase.CreateAsset(
+                    material,
+                    WorldStrokeMaterialPath);
+            }
+            else
+            {
+                material.shader = shader;
+            }
+
+            if (material.HasProperty("_BaseColor"))
+                material.SetColor("_BaseColor", Color.white);
+            if (material.HasProperty("_Color"))
+                material.SetColor("_Color", Color.white);
+            if (material.HasProperty("_EdgeColor"))
+                material.SetColor("_EdgeColor", Color.white);
+            if (material.HasProperty("_DashFill"))
+                material.SetFloat("_DashFill", 0.92f);
+            if (material.HasProperty("_PulseStrength"))
+                material.SetFloat("_PulseStrength", 0.04f);
+
+            material.renderQueue = 3100;
+            EditorUtility.SetDirty(material);
+            AssetDatabase.SaveAssets();
+            return material;
         }
 
         private static GameObject GetOrCreateRoot(

@@ -63,6 +63,7 @@ namespace PaintedAlive.Paint
         public OilStrokeState State { get; private set; }
         public bool IsFinalized => finalized;
         public OilStrokeShape Shape { get; private set; }
+        public int NetworkStrokeId { get; private set; }
 
         public float LifecycleElapsed => lifecycleElapsed;
 
@@ -97,6 +98,11 @@ namespace PaintedAlive.Paint
         public int WetCutCount { get; private set; }
         public int DryingCutCount { get; private set; }
         public int DryCutCount { get; private set; }
+
+        public void SetNetworkStrokeId(int value)
+        {
+            NetworkStrokeId = Mathf.Max(1, value);
+        }
 
         public void Initialize(
             OilStrokeConfig strokeConfig,

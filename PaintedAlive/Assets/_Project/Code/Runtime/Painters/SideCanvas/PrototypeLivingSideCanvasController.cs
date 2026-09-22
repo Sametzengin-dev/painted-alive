@@ -27,6 +27,21 @@ namespace PaintedAlive.Painters.SideCanvas
                 PrototypeRigMarkerKind.RightFoot
             };
 
+        private static readonly Color[] DrawingPalette =
+        {
+            new Color(0.055f, 0.050f, 0.045f, 1f),
+            new Color(0.82f, 0.16f, 0.12f, 1f),
+            new Color(0.10f, 0.39f, 0.84f, 1f),
+            new Color(0.08f, 0.58f, 0.32f, 1f),
+            new Color(0.48f, 0.22f, 0.72f, 1f),
+            new Color(0.94f, 0.58f, 0.08f, 1f)
+        };
+
+        private static readonly string[] DrawingPaletteNames =
+        {
+            "Kömür", "Kızıl", "Safir", "Zümrüt", "Menekşe", "Altın"
+        };
+
         [Header("Existing Sources")]
         [SerializeField]
         private PrototypeUnifiedHudController unifiedHudController;
@@ -72,6 +87,24 @@ namespace PaintedAlive.Painters.SideCanvas
         [SerializeField, Min(4)]
         private int maximumPointsPerStroke = 96;
 
+        [SerializeField, Range(0, 5)]
+        private int selectedDrawingColorIndex;
+
+        [SerializeField, Range(0.02f, 0.16f)]
+        private float markerEditSelectionDistance = 0.075f;
+
+        [Header("3D Deployment Scale")]
+        [SerializeField] private Vector3 deploymentScale = Vector3.one;
+
+        [SerializeField, Range(0.35f, 1f)]
+        private float minimumDeploymentScale = 0.55f;
+
+        [SerializeField, Range(1f, 3f)]
+        private float maximumDeploymentScale = 1.8f;
+
+        [SerializeField, Range(0.01f, 0.25f)]
+        private float deploymentScaleStep = 0.08f;
+
         [Header("Runtime Read Only")]
         [SerializeField] private bool isOpen;
         [SerializeField] private PrototypeSideCanvasMode currentMode;
@@ -91,6 +124,7 @@ namespace PaintedAlive.Painters.SideCanvas
         [SerializeField] private int roleAutoCloseCount;
         [SerializeField] private int roleRejectedActionCount;
         [SerializeField] private string resolvedRole = "Unknown";
+        [SerializeField, Range(0f, 1f)] private float rigQuality;
         [SerializeField] private List<PrototypeSideCanvasStroke> strokes =
             new List<PrototypeSideCanvasStroke>();
 
@@ -114,6 +148,9 @@ namespace PaintedAlive.Painters.SideCanvas
         private CursorLockMode previousCursorLockMode;
         private bool previousCursorVisible;
         private float previewAttackStartedAt = -100f;
+        private float nextScaleRepeatAt;
+        private bool rigMarkerDragActive;
+        private PrototypeRigMarkerKind activeRigMarkerKind;
         private const float PreviewAttackDuration = 0.52f;
 
         public bool IsOpen => isOpen;
@@ -146,7 +183,24 @@ namespace PaintedAlive.Painters.SideCanvas
         public int MarkerCount => markers.Count;
         public bool KeyboardMouseOnly => true;
         public bool MatchTimePaused => false;
-        public bool DeployEnabled => false;
+        public bool DeployEnabled =>
+            isOpen &&
+            currentMode == PrototypeSideCanvasMode.Preview &&
+            rigValid;
+        public Vector3 DeploymentScale => deploymentScale;
+        public int DrawingColorCount => DrawingPalette.Length;
+        public int SelectedDrawingColorIndex => selectedDrawingColorIndex;
+        public Color SelectedDrawingColor =>
+            DrawingPalette[Mathf.Clamp(
+                selectedDrawingColorIndex,
+                0,
+                DrawingPalette.Length - 1)];
+        public string SelectedDrawingColorName =>
+            DrawingPaletteNames[Mathf.Clamp(
+                selectedDrawingColorIndex,
+                0,
+                DrawingPaletteNames.Length - 1)];
+        public float RigQuality => rigQuality;
 
         public float PreviewAttackNormalized
         {
@@ -330,6 +384,11 @@ namespace PaintedAlive.Painters.SideCanvas
                 ClearDraft();
             }
 
+            if (currentMode == PrototypeSideCanvasMode.Draw)
+            {
+                HandleDrawingColorInput(keyboard);
+            }
+
             if (currentMode ==
                     PrototypeSideCanvasMode.Preview &&
                 keyboard.spaceKey.wasPressedThisFrame)
@@ -342,6 +401,11 @@ namespace PaintedAlive.Painters.SideCanvas
                     "Ağır saldırı ön izlemesi.";
 
                 RefreshAll();
+            }
+
+            if (currentMode == PrototypeSideCanvasMode.Preview)
+            {
+                HandleDeploymentScaleInput(keyboard);
             }
 
             // Drawing and rig placement are driven only by UI pointer
@@ -490,6 +554,95 @@ namespace PaintedAlive.Painters.SideCanvas
                 "Ağır saldırı ön izlemesi.";
 
             RefreshAll();
+        }
+
+        public void AdjustDeploymentScale(Vector3 axisDelta)
+        {
+            if (!isOpen ||
+                currentMode != PrototypeSideCanvasMode.Preview)
+            {
+                return;
+            }
+
+            deploymentScale = ClampDeploymentScale(
+                deploymentScale + axisDelta * deploymentScaleStep);
+
+            validationMessage =
+                $"3B boyut • X {deploymentScale.x:F2}  " +
+                $"Y {deploymentScale.y:F2}  Z {deploymentScale.z:F2}";
+
+            RefreshAll();
+        }
+
+        public void ResetDeploymentScale()
+        {
+            if (!isOpen ||
+                currentMode != PrototypeSideCanvasMode.Preview)
+            {
+                return;
+            }
+
+            deploymentScale = Vector3.one;
+            validationMessage = "3B boyut varsayılana döndü.";
+            RefreshAll();
+        }
+
+        public Color GetDrawingPaletteColor(int index)
+        {
+            return DrawingPalette[Mathf.Clamp(
+                index,
+                0,
+                DrawingPalette.Length - 1)];
+        }
+
+        public string GetDrawingPaletteName(int index)
+        {
+            return DrawingPaletteNames[Mathf.Clamp(
+                index,
+                0,
+                DrawingPaletteNames.Length - 1)];
+        }
+
+        public void SelectDrawingColor(int index)
+        {
+            selectedDrawingColorIndex = Mathf.Clamp(
+                index,
+                0,
+                DrawingPalette.Length - 1);
+
+            validationMessage =
+                $"Çizim rengi: {SelectedDrawingColorName}";
+
+            RefreshTextOnly();
+        }
+
+        public Color ResolvePreviewInkColor()
+        {
+            Color weighted = Color.clear;
+            float totalWeight = 0f;
+
+            for (int index = 0; index < strokes.Count; index++)
+            {
+                PrototypeSideCanvasStroke stroke = strokes[index];
+
+                if (stroke == null || stroke.Points.Count == 0)
+                {
+                    continue;
+                }
+
+                float weight = Mathf.Max(1f, stroke.Points.Count);
+                weighted += stroke.Color * weight;
+                totalWeight += weight;
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return SelectedDrawingColor;
+            }
+
+            weighted /= totalWeight;
+            weighted.a = 1f;
+            return weighted;
         }
 
         public void CloseFromToolbar()
@@ -647,10 +800,27 @@ namespace PaintedAlive.Painters.SideCanvas
             PointerEventData.InputButton button)
         {
             if (!isOpen ||
-                button !=
-                    PointerEventData.InputButton.Left ||
-                currentMode !=
-                    PrototypeSideCanvasMode.Draw ||
+                button != PointerEventData.InputButton.Left)
+            {
+                return;
+            }
+
+            if (currentMode == PrototypeSideCanvasMode.Rig &&
+                rigMarkerDragActive)
+            {
+                if (TrySnapToInk(
+                        ClampNormalized(normalized),
+                        out Vector2 rigSnapped))
+                {
+                    SetMarker(activeRigMarkerKind, rigSnapped);
+                    ValidateRig();
+                    RefreshAll();
+                }
+
+                return;
+            }
+
+            if (currentMode != PrototypeSideCanvasMode.Draw ||
                 activeStroke == null)
             {
                 return;
@@ -684,6 +854,21 @@ namespace PaintedAlive.Painters.SideCanvas
                 ValidateRig();
                 RefreshAll();
             }
+            else if (currentMode == PrototypeSideCanvasMode.Rig &&
+                     rigMarkerDragActive)
+            {
+                if (TrySnapToInk(
+                        ClampNormalized(normalized),
+                        out Vector2 rigSnapped))
+                {
+                    SetMarker(activeRigMarkerKind, rigSnapped);
+                }
+
+                rigMarkerDragActive = false;
+                NormalizeRigSides();
+                ValidateRig();
+                RefreshAll();
+            }
         }
 
         public void ResetPrototypeDraftForSetup()
@@ -698,6 +883,9 @@ namespace PaintedAlive.Painters.SideCanvas
             markers.Clear();
             currentMode =
                 PrototypeSideCanvasMode.Draw;
+
+            deploymentScale = Vector3.one;
+            selectedDrawingColorIndex = 0;
 
             hasCompleteRig = false;
             rigValid = false;
@@ -721,11 +909,7 @@ namespace PaintedAlive.Painters.SideCanvas
 
             activeStroke =
                 new PrototypeSideCanvasStroke(
-                    new Color(
-                        0.055f,
-                        0.050f,
-                        0.045f,
-                        1f),
+                    SelectedDrawingColor,
                     normalizedBrushWidth);
 
             activeStroke.Points.Add(normalized);
@@ -765,8 +949,25 @@ namespace PaintedAlive.Painters.SideCanvas
 
         private void PlaceRigMarker(Vector2 normalized)
         {
-            PrototypeRigMarkerKind kind =
-                ResolveNextMarkerKind();
+            PrototypeRigMarkerKind kind;
+
+            if (hasCompleteRig)
+            {
+                if (!TryFindNearestMarker(
+                        normalized,
+                        markerEditSelectionDistance,
+                        out kind))
+                {
+                    validationMessage =
+                        "Düzenlemek için marker'a tıklayıp sürükle.";
+                    RefreshAll();
+                    return;
+                }
+            }
+            else
+            {
+                kind = ResolveNextMarkerKind();
+            }
 
             if (!TrySnapToInk(
                     normalized,
@@ -780,6 +981,8 @@ namespace PaintedAlive.Painters.SideCanvas
             }
 
             SetMarker(kind, snapped);
+            activeRigMarkerKind = kind;
+            rigMarkerDragActive = true;
             ValidateRig();
             RefreshAll();
         }
@@ -981,8 +1184,10 @@ namespace PaintedAlive.Painters.SideCanvas
         private void ValidateRig()
         {
             hasCompleteRig =
-                markers.Count >=
+                CountUniqueMarkers() >=
                 MarkerOrder.Length;
+
+            rigQuality = 0f;
 
             if (!HasDrawableStroke())
             {
@@ -1017,9 +1222,18 @@ namespace PaintedAlive.Painters.SideCanvas
                 return;
             }
 
+            // The previous fixed 0.08 threshold rejected compact but valid
+            // drawings even when both markers were visibly on separate ink.
+            // Scale the safety gap from the actual brush size instead.
+            float minimumHeadCoreDistance =
+                Mathf.Clamp(
+                    normalizedBrushWidth * 1.1f,
+                    0.018f,
+                    0.04f);
+
             if (Vector2.Distance(
                     core,
-                    head) < 0.08f)
+                    head) < minimumHeadCoreDistance)
             {
                 rigValid = false;
                 validationMessage =
@@ -1046,9 +1260,28 @@ namespace PaintedAlive.Painters.SideCanvas
                 }
             }
 
+            rigQuality = CalculateRigQuality(core, head);
+
             rigValid = true;
-            validationMessage =
-                "Rig geçerli • TAB ile Kukla Testine geç.";
+
+            switch (currentMode)
+            {
+                case PrototypeSideCanvasMode.Preview:
+                    validationMessage =
+                        $"Kukla hazır • Boyut X{deploymentScale.x:F2} " +
+                        $"Y{deploymentScale.y:F2} Z{deploymentScale.z:F2} • V: aktar";
+                    break;
+
+                case PrototypeSideCanvasMode.Rig:
+                    validationMessage =
+                        "Rig geçerli • TAB ile Kukla Testine geç.";
+                    break;
+
+                default:
+                    validationMessage =
+                        "Çizim ve rig korunuyor • TAB ile rig düzenle.";
+                    break;
+            }
         }
 
         private bool TryGetMarker(
@@ -1117,6 +1350,26 @@ namespace PaintedAlive.Painters.SideCanvas
                         bestPoint =
                             point;
                     }
+
+                    if (pointIndex == 0)
+                    {
+                        continue;
+                    }
+
+                    Vector2 segmentPoint = ClosestPointOnSegment(
+                        requested,
+                        stroke.Points[pointIndex - 1],
+                        point);
+
+                    float segmentDistance = Vector2.Distance(
+                        requested,
+                        segmentPoint);
+
+                    if (segmentDistance < bestDistance)
+                    {
+                        bestDistance = segmentDistance;
+                        bestPoint = segmentPoint;
+                    }
                 }
             }
 
@@ -1129,33 +1382,223 @@ namespace PaintedAlive.Painters.SideCanvas
             Vector2 position,
             float maximumDistance)
         {
-            for (int strokeIndex = 0;
-                 strokeIndex < strokes.Count;
-                 strokeIndex++)
-            {
-                PrototypeSideCanvasStroke stroke =
-                    strokes[strokeIndex];
+            return TryGetClosestInkPoint(
+                       position,
+                       out _,
+                       out float distance) &&
+                   distance <= maximumDistance;
+        }
 
-                if (stroke == null)
+        private bool TryGetClosestInkPoint(
+            Vector2 requested,
+            out Vector2 closest,
+            out float distance)
+        {
+            closest = requested;
+            distance = float.PositiveInfinity;
+            bool found = false;
+
+            for (int strokeIndex = 0; strokeIndex < strokes.Count; strokeIndex++)
+            {
+                PrototypeSideCanvasStroke stroke = strokes[strokeIndex];
+                if (stroke == null || stroke.Points.Count == 0)
                 {
                     continue;
                 }
 
-                for (int pointIndex = 0;
-                     pointIndex < stroke.Points.Count;
-                     pointIndex++)
+                for (int pointIndex = 0; pointIndex < stroke.Points.Count; pointIndex++)
                 {
-                    if (Vector2.Distance(
-                            position,
-                            stroke.Points[pointIndex]) <=
-                        maximumDistance)
+                    Vector2 candidate = stroke.Points[pointIndex];
+                    float candidateDistance = Vector2.Distance(requested, candidate);
+
+                    if (candidateDistance < distance)
                     {
-                        return true;
+                        distance = candidateDistance;
+                        closest = candidate;
+                        found = true;
+                    }
+
+                    if (pointIndex == 0)
+                    {
+                        continue;
+                    }
+
+                    candidate = ClosestPointOnSegment(
+                        requested,
+                        stroke.Points[pointIndex - 1],
+                        stroke.Points[pointIndex]);
+                    candidateDistance = Vector2.Distance(requested, candidate);
+
+                    if (candidateDistance < distance)
+                    {
+                        distance = candidateDistance;
+                        closest = candidate;
+                        found = true;
                     }
                 }
             }
 
-            return false;
+            return found;
+        }
+
+        private static Vector2 ClosestPointOnSegment(
+            Vector2 point,
+            Vector2 start,
+            Vector2 end)
+        {
+            Vector2 segment = end - start;
+            float lengthSquared = segment.sqrMagnitude;
+
+            if (lengthSquared <= 0.0000001f)
+            {
+                return start;
+            }
+
+            float t = Mathf.Clamp01(
+                Vector2.Dot(point - start, segment) / lengthSquared);
+
+            return start + segment * t;
+        }
+
+        private int CountUniqueMarkers()
+        {
+            int count = 0;
+
+            for (int orderIndex = 0; orderIndex < MarkerOrder.Length; orderIndex++)
+            {
+                if (TryGetMarker(MarkerOrder[orderIndex], out _))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private bool TryFindNearestMarker(
+            Vector2 normalized,
+            float maximumDistance,
+            out PrototypeRigMarkerKind kind)
+        {
+            kind = PrototypeRigMarkerKind.Core;
+            float bestDistance = float.PositiveInfinity;
+            bool found = false;
+
+            for (int index = 0; index < markers.Count; index++)
+            {
+                PrototypeRigMarkerPlacement marker = markers[index];
+                if (marker == null)
+                {
+                    continue;
+                }
+
+                float distance = Vector2.Distance(
+                    normalized,
+                    marker.NormalizedPosition);
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    kind = marker.Kind;
+                    found = true;
+                }
+            }
+
+            return found && bestDistance <= maximumDistance;
+        }
+
+        private void NormalizeRigSides()
+        {
+            if (!TryGetMarker(PrototypeRigMarkerKind.Core, out Vector2 core) ||
+                !TryGetMarker(PrototypeRigMarkerKind.Head, out Vector2 head))
+            {
+                return;
+            }
+
+            Vector2 bodyAxis = head - core;
+            if (bodyAxis.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            bodyAxis.Normalize();
+            Vector2 rightAxis = new Vector2(bodyAxis.y, -bodyAxis.x);
+
+            NormalizeMarkerPair(
+                PrototypeRigMarkerKind.LeftHand,
+                PrototypeRigMarkerKind.RightHand,
+                core,
+                rightAxis);
+
+            NormalizeMarkerPair(
+                PrototypeRigMarkerKind.LeftFoot,
+                PrototypeRigMarkerKind.RightFoot,
+                core,
+                rightAxis);
+        }
+
+        private void NormalizeMarkerPair(
+            PrototypeRigMarkerKind leftKind,
+            PrototypeRigMarkerKind rightKind,
+            Vector2 core,
+            Vector2 rightAxis)
+        {
+            if (!TryGetMarker(leftKind, out Vector2 left) ||
+                !TryGetMarker(rightKind, out Vector2 right))
+            {
+                return;
+            }
+
+            float leftSide = Vector2.Dot(left - core, rightAxis);
+            float rightSide = Vector2.Dot(right - core, rightAxis);
+
+            if (leftSide <= rightSide)
+            {
+                return;
+            }
+
+            SetMarker(leftKind, right);
+            SetMarker(rightKind, left);
+        }
+
+        private float CalculateRigQuality(Vector2 core, Vector2 head)
+        {
+            float headSeparation = Mathf.InverseLerp(
+                normalizedBrushWidth,
+                0.24f,
+                Vector2.Distance(core, head));
+
+            float limbScore = 0f;
+            int limbCount = 0;
+
+            PrototypeRigMarkerKind[] limbs =
+            {
+                PrototypeRigMarkerKind.LeftHand,
+                PrototypeRigMarkerKind.RightHand,
+                PrototypeRigMarkerKind.LeftFoot,
+                PrototypeRigMarkerKind.RightFoot
+            };
+
+            for (int index = 0; index < limbs.Length; index++)
+            {
+                if (!TryGetMarker(limbs[index], out Vector2 limb))
+                {
+                    continue;
+                }
+
+                limbScore += Mathf.InverseLerp(
+                    normalizedBrushWidth * 0.5f,
+                    0.22f,
+                    Vector2.Distance(core, limb));
+                limbCount++;
+            }
+
+            if (limbCount > 0)
+            {
+                limbScore /= limbCount;
+            }
+
+            return Mathf.Clamp01(headSeparation * 0.45f + limbScore * 0.55f);
         }
 
         private bool HasDrawableStroke()
@@ -1578,9 +2021,94 @@ namespace PaintedAlive.Painters.SideCanvas
                 draftSummaryText.text =
                     $"STROKE {strokes.Count}/{maximumStrokeCount}\n" +
                     $"MARKER {markers.Count}/{MarkerOrder.Length}\n" +
-                    $"RIG {(rigValid ? "GEÇERLİ" : "EKSİK")}\n" +
-                    "AKTARIM KAPALI • AI YOK";
+                    $"RİG {(rigValid ? $"GEÇERLİ %{Mathf.RoundToInt(rigQuality * 100f)}" : "EKSİK")}\n" +
+                    $"RENK {SelectedDrawingColorName.ToUpperInvariant()} [{selectedDrawingColorIndex + 1}]\n" +
+                    $"3B X{deploymentScale.x:F2} Y{deploymentScale.y:F2} Z{deploymentScale.z:F2}\n" +
+                    $"AKTARIM {(DeployEnabled ? "HAZIR" : "KİLİTLİ")}";
             }
+        }
+
+        private void HandleDeploymentScaleInput(Keyboard keyboard)
+        {
+            if (keyboard.homeKey.wasPressedThisFrame)
+            {
+                keyboardActionCount++;
+                ResetDeploymentScale();
+                nextScaleRepeatAt = Time.unscaledTime + 0.18f;
+                return;
+            }
+
+            bool anyScaleKey =
+                keyboard.leftArrowKey.isPressed ||
+                keyboard.rightArrowKey.isPressed ||
+                keyboard.downArrowKey.isPressed ||
+                keyboard.upArrowKey.isPressed ||
+                keyboard.pageDownKey.isPressed ||
+                keyboard.pageUpKey.isPressed;
+
+            if (!anyScaleKey)
+            {
+                nextScaleRepeatAt = 0f;
+                return;
+            }
+
+            if (Time.unscaledTime < nextScaleRepeatAt)
+            {
+                return;
+            }
+
+            Vector3 delta = Vector3.zero;
+
+            if (keyboard.leftArrowKey.isPressed)
+                delta.x -= 1f;
+            if (keyboard.rightArrowKey.isPressed)
+                delta.x += 1f;
+            if (keyboard.downArrowKey.isPressed)
+                delta.y -= 1f;
+            if (keyboard.upArrowKey.isPressed)
+                delta.y += 1f;
+            if (keyboard.pageDownKey.isPressed)
+                delta.z -= 1f;
+            if (keyboard.pageUpKey.isPressed)
+                delta.z += 1f;
+
+            if (delta != Vector3.zero)
+            {
+                keyboardActionCount++;
+                AdjustDeploymentScale(delta);
+                nextScaleRepeatAt = Time.unscaledTime + 0.075f;
+            }
+        }
+
+        private void HandleDrawingColorInput(Keyboard keyboard)
+        {
+            int requested = -1;
+
+            if (keyboard.digit1Key.wasPressedThisFrame) requested = 0;
+            else if (keyboard.digit2Key.wasPressedThisFrame) requested = 1;
+            else if (keyboard.digit3Key.wasPressedThisFrame) requested = 2;
+            else if (keyboard.digit4Key.wasPressedThisFrame) requested = 3;
+            else if (keyboard.digit5Key.wasPressedThisFrame) requested = 4;
+            else if (keyboard.digit6Key.wasPressedThisFrame) requested = 5;
+
+            if (requested < 0)
+            {
+                return;
+            }
+
+            keyboardActionCount++;
+            SelectDrawingColor(requested);
+        }
+
+        private Vector3 ClampDeploymentScale(Vector3 value)
+        {
+            float minimum = Mathf.Max(0.1f, minimumDeploymentScale);
+            float maximum = Mathf.Max(minimum, maximumDeploymentScale);
+
+            return new Vector3(
+                Mathf.Clamp(value.x, minimum, maximum),
+                Mathf.Clamp(value.y, minimum, maximum),
+                Mathf.Clamp(value.z, minimum, maximum));
         }
 
         private string ResolveModeTitle()

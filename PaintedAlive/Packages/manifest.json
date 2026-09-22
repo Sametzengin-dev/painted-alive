@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "com.codewriter.triinspector": "https://github.com/codewriter-packages/Tri-Inspector.git",
+    "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#main",
     "com.firstgeargames.fishnet": "https://github.com/FirstGearGames/FishNet.git?path=Assets/FishNet#4.7.3",
     "com.firstgeargames.fishysteamworks": "file:com.firstgeargames.fishysteamworks",
     "com.kyrylokuzyk.primetween": "1.4.11",

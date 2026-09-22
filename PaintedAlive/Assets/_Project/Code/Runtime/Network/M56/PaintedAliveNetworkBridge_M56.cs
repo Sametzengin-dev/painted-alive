@@ -30,11 +30,24 @@ namespace PaintedAlive.Networking.M56
         bool RequestWorldAction(string systemReference);
 
         void PublishLocalOilStroke(
+            int networkStrokeId,
             Vector3[] points,
             OilStrokeShape shape,
             OilStrokePressureProfile pressureProfile);
 
         void PublishLocalOilStrokeClear();
+
+        void PublishLocalOilCut(
+            int networkStrokeId,
+            Vector3 point,
+            float gapWidth);
+
+        void PublishLocalOilPreview(
+            uint previewId,
+            bool visible,
+            Vector3[] points,
+            OilStrokeShape shape,
+            float width);
 
         void PublishLocalInkCreature(
             InkGlyphLoadoutId loadoutId,
@@ -121,6 +134,7 @@ namespace PaintedAlive.Networking.M56
         }
 
         public static void NotifyLocalOilStroke(
+            int networkStrokeId,
             Vector3[] points,
             OilStrokeShape shape,
             OilStrokePressureProfile pressureProfile)
@@ -129,6 +143,7 @@ namespace PaintedAlive.Networking.M56
                 return;
 
             router.PublishLocalOilStroke(
+                networkStrokeId,
                 points,
                 shape,
                 pressureProfile);
@@ -140,6 +155,38 @@ namespace PaintedAlive.Networking.M56
                 return;
 
             router.PublishLocalOilStrokeClear();
+        }
+
+        public static void NotifyLocalOilCut(
+            int networkStrokeId,
+            Vector3 point,
+            float gapWidth)
+        {
+            if (!NetworkSessionActive || networkStrokeId <= 0)
+                return;
+
+            router.PublishLocalOilCut(
+                networkStrokeId,
+                point,
+                gapWidth);
+        }
+
+        public static void NotifyLocalOilPreview(
+            uint previewId,
+            bool visible,
+            Vector3[] points,
+            OilStrokeShape shape,
+            float width)
+        {
+            if (!NetworkSessionActive)
+                return;
+
+            router.PublishLocalOilPreview(
+                previewId,
+                visible,
+                points,
+                shape,
+                width);
         }
 
         public static void NotifyLocalInkCreature(

@@ -199,6 +199,8 @@ namespace PaintedAlive.Painters.SideCanvas
 
         private void DrawPuppet()
         {
+            puppetInk = source.ResolvePreviewInkColor();
+
             Dictionary<
                 PrototypeRigMarkerKind,
                 Vector2> markers =
@@ -287,6 +289,30 @@ namespace PaintedAlive.Painters.SideCanvas
                 Mathf.Max(
                     4,
                     texture.width / 42);
+
+            float depthStrength = Mathf.Abs(
+                source.DeploymentScale.z - 1f);
+
+            Vector2 depthOffset = new Vector2(1f, -0.62f) *
+                (source.DeploymentScale.z - 1f) *
+                texture.width * 0.055f;
+
+            if (depthOffset.sqrMagnitude > 0.25f)
+            {
+                Color depthColor = ghostColor;
+                depthColor.a = 0.12f + depthStrength * 0.10f;
+
+                DrawBone(core + depthOffset, head + depthOffset,
+                    limbRadius + 2, (Color32)depthColor);
+                DrawBone(core + depthOffset, leftHand + depthOffset,
+                    limbRadius + 2, (Color32)depthColor);
+                DrawBone(core + depthOffset, rightHand + depthOffset,
+                    limbRadius + 2, (Color32)depthColor);
+                DrawBone(core + depthOffset, leftFoot + depthOffset,
+                    limbRadius + 3, (Color32)depthColor);
+                DrawBone(core + depthOffset, rightFoot + depthOffset,
+                    limbRadius + 3, (Color32)depthColor);
+            }
 
             DrawBone(
                 core,
@@ -385,6 +411,12 @@ namespace PaintedAlive.Painters.SideCanvas
             float scale =
                 texture.width *
                 0.76f;
+
+            Vector2 previewScale = new Vector2(
+                source != null ? source.DeploymentScale.x : 1f,
+                source != null ? source.DeploymentScale.y : 1f);
+
+            centered = Vector2.Scale(centered, previewScale);
 
             return new Vector2(
                 texture.width * 0.5f,

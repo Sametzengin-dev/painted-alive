@@ -47,6 +47,7 @@ namespace PaintedAlive.Paint
 
         public IReadOnlyList<OilStrokeRuntime> Strokes =>
             strokes;
+        public OilStrokeRuntime LastFinalizedStroke { get; private set; }
 
         public float GetPreviewWidth(
             OilStrokeShape shape)
@@ -94,7 +95,34 @@ namespace PaintedAlive.Paint
             OilStrokeShape shape,
             OilStrokePressureProfile pressureProfile)
         {
+            return BeginStrokeInternal(
+                worldPoint,
+                shape,
+                pressureProfile,
+                nextStrokeId);
+        }
+
+        public bool BeginReplicatedStroke(
+            int networkStrokeId,
+            Vector3 worldPoint,
+            OilStrokeShape shape,
+            OilStrokePressureProfile pressureProfile)
+        {
+            return BeginStrokeInternal(
+                worldPoint,
+                shape,
+                pressureProfile,
+                networkStrokeId);
+        }
+
+        private bool BeginStrokeInternal(
+            Vector3 worldPoint,
+            OilStrokeShape shape,
+            OilStrokePressureProfile pressureProfile,
+            int networkStrokeId)
+        {
             EndStroke();
+            LastFinalizedStroke = null;
 
             if (config == null)
             {
@@ -114,7 +142,7 @@ namespace PaintedAlive.Paint
             var strokeObject =
                 new GameObject(
                     $"OilStroke_" +
-                    $"{nextStrokeId:0000}");
+                    $"{Mathf.Max(1, networkStrokeId):0000}");
 
             strokeObject.transform.SetParent(
                 parent,
@@ -149,6 +177,8 @@ namespace PaintedAlive.Paint
                 shape,
                 pressureProfile);
 
+            activeStroke.SetNetworkStrokeId(networkStrokeId);
+
             bool pointAccepted =
                 activeStroke
                     .TryAppendWorldPoint(
@@ -163,7 +193,9 @@ namespace PaintedAlive.Paint
             }
 
             strokes.Add(activeStroke);
-            nextStrokeId++;
+            nextStrokeId = Mathf.Max(
+                nextStrokeId,
+                networkStrokeId + 1);
 
             return true;
         }
@@ -206,7 +238,26 @@ namespace PaintedAlive.Paint
             }
 
             completedStroke.FinalizeStroke();
+            LastFinalizedStroke = completedStroke;
             StrokeFinalized?.Invoke(completedStroke);
+        }
+
+        public bool TryApplyReplicatedCut(
+            int networkStrokeId,
+            Vector3 worldPoint,
+            float gapWidth)
+        {
+            for (int index = 0; index < strokes.Count; index++)
+            {
+                OilStrokeRuntime stroke = strokes[index];
+                if (stroke != null &&
+                    stroke.NetworkStrokeId == networkStrokeId)
+                {
+                    return stroke.TryCutWorldPoint(worldPoint, gapWidth);
+                }
+            }
+
+            return false;
         }
 
         public void ClearAllStrokes()
@@ -229,6 +280,7 @@ namespace PaintedAlive.Paint
 
             strokes.Clear();
             nextStrokeId = 1;
+            LastFinalizedStroke = null;
         }
 
         private void OnDisable()
